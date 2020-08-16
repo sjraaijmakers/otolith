@@ -5,3 +5,6 @@ __pycache__/
 *.vtk
 *.png
 *.pyc
+analysis/
+.vscode/
+.ipynb_checkpoints

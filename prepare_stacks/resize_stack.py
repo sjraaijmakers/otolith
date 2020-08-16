@@ -3,12 +3,15 @@ sys.path.insert(1, '../functions')
 
 import vtk_functions
 import general
+import os
 
 
 if __name__ == "__main__":
-    max_z = 2000
+    args = sys.argv[1:]
+    input_folder = str(args[0])
+    output_folder = args[1]
 
-    input_folder = "/home/steven/inputs/scans/original/otoF75"
+    max_z = 2000
     imgdata = vtk_functions.folder_to_imgdata(input_folder, verbose=True)
 
     print("Loaded files...")
@@ -24,4 +27,6 @@ if __name__ == "__main__":
     resized_imgdata = vtk_functions.resize_imgdata(imgdata, omega)
 
     arr = vtk_functions.imgdata_to_arr(resized_imgdata)
-    general.arr_to_imgseq(arr, "/home/steven/inputs/scans/resized/otoF75_%s" % omega)
+
+    basename = os.path.basename(input_folder)
+    general.arr_to_imgseq(arr, "%s/%s_%s" % (output_folder, basename, omega))

@@ -1,10 +1,10 @@
-import vtk
 import numpy as np
 import os
 import cv2
 import shutil
 import glob
 from bresenham import bresenham
+from numpy import linalg as LA
 
 
 def trunc(f, n):
@@ -16,14 +16,14 @@ def count_files_in_folder(folder, file_extension):
 
 
 def get_file_prefix(folder, z_amount):
-    blocks = len(str(z_amount)) # count digits in int
+    blocks = len(str(z_amount))  # count digits in int
 
     filename = glob.glob1(folder, "*.tif")[int(z_amount / 2)]
     prefix = os.path.splitext(filename)[0]
     return prefix[:-blocks]
 
 
-# via: https://stackoverflow.com/questions/46626267/how-to-generate-a-sphere-in-3d-numpy-array
+# https://stackoverflow.com/questions/46626267/how-to-generate-a-sphere-in-3d-numpy-array
 def sphere(r, val=255, padding=0):
     shape = (r*2 + padding*2, r*2 + padding*2, r*2 + padding*2)
     position = ((r*2 + padding*2)/2, (r*2 + padding*2)/2, (r*2 + padding*2)/2)
@@ -162,4 +162,3 @@ def get_contour_length(img, ignore_childs=True):
 def arr_to_points(arr):
     xs, ys = np.nonzero(arr.T)
     return list(zip(xs, ys))
-

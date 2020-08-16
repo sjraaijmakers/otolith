@@ -1,20 +1,15 @@
 import sys
-sys.path.insert(1, '../functions')
 
 import vtk_functions
-import general
 
 import vtk
-import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import DBSCAN
 from vtk.util import numpy_support
 import pandas as pd
 import os
-import sys
 
-
+sys.path.insert(1, '../functions')
 sns.set()
 
 
@@ -64,7 +59,8 @@ class CurvatureSegmentation():
         df = df[df["cluster"] != -1]
 
         # filter out cluster smaller than min_cluster_count
-        df = df.groupby("cluster").filter(lambda x: x["cluster"].count() > self.min_cluster_count)
+        df = df.groupby("cluster").filter(lambda x: x["cluster"].count() >
+                                          self.min_cluster_count)
 
         # get average normal vec per cluster
         # df["normal_vec_numpy"] = df["point"].apply(lambda x: np.array(x))
@@ -85,7 +81,8 @@ class CurvatureSegmentation():
         df = pd.DataFrame()
 
         df["point"] = list(map(tuple, numpy_support.vtk_to_numpy(xyzs.GetData())))
-        df["normal_vec"] = list(map(tuple, numpy_support.vtk_to_numpy(normal_vecs)))
+        df["normal_vec"] = list(map(tuple,
+                                    numpy_support.vtk_to_numpy(normal_vecs)))
         df["mean_curvature"] = numpy_support.vtk_to_numpy(mc_vals)
 
         print("Polydata info to pandas DataFrame")

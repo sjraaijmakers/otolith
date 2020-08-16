@@ -9,8 +9,6 @@ from numpy import linalg as LA
 import vtk
 import cv2
 import os
-import sys
-import glob
 
 
 def is_upside_down(img):
@@ -85,7 +83,8 @@ def prepare_slices(imgdata, visualize, padding=1):
         omega = general.trunc(max_z / dims[2], 1)
         imgdata = vtk_functions.resize_imgdata(imgdata, omega)
         imgdata.SetSpacing(1, 1, 1)
-        print("Resampled imagedata dimensions (%s): %s" % (omega, str(imgdata.GetDimensions())))
+        print("Resampled imagedata dimensions (%s): %s" %
+              (omega, str(imgdata.GetDimensions())))
 
     # Create contour (input for OBBtree)
     sran = imgdata.GetScalarRange()
@@ -108,7 +107,8 @@ def prepare_slices(imgdata, visualize, padding=1):
     obb_min = [0.0, 0.0, 0.0]
     obb_size = [0.0, 0.0, 0.0]
 
-    obb.ComputeOBB(polydata.GetOutput(), obb_corner, obb_max, obb_mid, obb_min, obb_size)
+    obb.ComputeOBB(polydata.GetOutput(), obb_corner, obb_max, obb_mid,
+                   obb_min, obb_size)
 
     print("Derived OBB from imagedata's contour...")
 
@@ -129,10 +129,10 @@ def prepare_slices(imgdata, visualize, padding=1):
 
     transform = vtk.vtkTransform()
     transform.SetMatrix(t)
-    transform.Inverse() # inverse t --> inverse resampling
+    transform.Inverse()  # inverse t --> inverse resampling
     transform.Update()
 
-    imgdata = vtk_reslice_imgdata(imgdata, transform)
+    imgdata = vtk_functions.reslice_imgdata(imgdata, transform)
     imgdata.SetSpacing(1, 1, 1)
 
     print("Transformed imagedata by t...")
@@ -141,7 +141,7 @@ def prepare_slices(imgdata, visualize, padding=1):
     corner = uvw_i.dot(obb_corner)
     ax1 = uvw_i.dot(obb_max + obb_corner)
     ax2 = uvw_i.dot(obb_mid + obb_corner)
-    ax3 =  uvw_i.dot(obb_min + obb_corner)
+    ax3 = uvw_i.dot(obb_min + obb_corner)
 
     x_range = corner[0][0], np.max(np.array([ax1[0], ax2[0], ax3[0]]))
     y_range = corner[1][0], np.max(np.array([ax1[1], ax2[1], ax3[1]]))
@@ -149,8 +149,10 @@ def prepare_slices(imgdata, visualize, padding=1):
 
     new_bounds = x_range + y_range + z_range
 
-    bte = bounds_to_extent(new_bounds, imgdata.GetOrigin(), imgdata.GetSpacing())
-    imgdata = vtk_extractvoi(imgdata, bte[0], bte[1], bte[2], bte[3], bte[4], bte[5], padding)
+    bte = bounds_to_extent(new_bounds, imgdata.GetOrigin(),
+                           imgdata.GetSpacing())
+    imgdata = vtk_functions.extract_voi(imgdata, bte[0], bte[1], bte[2],
+                                        bte[3], bte[4], bte[5], padding)
 
     print("Cropped imagedata...")
 
@@ -172,7 +174,6 @@ def prepare_slices(imgdata, visualize, padding=1):
 
         rotated_polydata = tf
 
-
         print("\t(Visualize) Created rotated contour...")
 
         r_obb = vtk.vtkOBBTree()
@@ -186,7 +187,8 @@ def prepare_slices(imgdata, visualize, padding=1):
         r_obb_min = [0.0, 0.0, 0.0]
         r_obb_size = [0.0, 0.0, 0.0]
 
-        r_obb.ComputeOBB(rotated_polydata.GetOutput(), r_obb_corner, r_obb_max, r_obb_mid, r_obb_min, r_obb_size)
+        r_obb.ComputeOBB(rotated_polydata.GetOutput(), r_obb_corner, r_obb_max,
+                         r_obb_mid, r_obb_min, r_obb_size)
 
         print("\t(Visualize) Derived OBB for rotated imagedata...")
 
@@ -261,15 +263,17 @@ def run(input_folder, output_folder, visualize=False):
     np_data, omega = prepare_slices(imgdata, visualize)
 
     if is_upside_down(np_data[:, :, int(np_data.shape[2] / 2)]):
-        np_data = np.rot90(np_data, k=2, axes=(0,1))
+        np_data = np.rot90(np_data, k=2, axes=(0, 1))
         print("Finished flipping...")
 
     basename = os.path.basename(input_folder)
 
     if omega < 1:
-        general.arr_to_imgseq(np_data, "%s/%s_prepared_%s" % (output_folder, basename, omega))
+        general.arr_to_imgseq(np_data, "%s/%s_prepared_%s" % (output_folder,
+                                                              basename, omega))
     else:
-        general.arr_to_imgseq(np_data, "%s/%s_prepared" % (output_folder, basename))
+        general.arr_to_imgseq(np_data, "%s/%s_prepared" % (output_folder,
+                                                           basename))
 
 
 if __name__ == "__main__":
@@ -280,4 +284,3 @@ if __name__ == "__main__":
     visualize = True if len(args) > 2 else False
 
     run(input_folder, output_folder, visualize=visualize)
-

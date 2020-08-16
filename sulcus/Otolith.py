@@ -11,7 +11,6 @@ import cv2
 import glob
 
 from scipy import signal
-from scipy import ndimage
 from peakdetect import peakdet
 from pickle_functions import save_pickle
 from itertools import chain
@@ -30,12 +29,15 @@ from itertools import chain
         - verify result of measurements!!!!
             - volume: check
             - surface: check (almost, still need proximal)
+        - merge get/detect peaks!
 """
+
 
 def linear_interpolation(x1, x2, distance_left, distance_right):
     return x1 + (x2 - x1) * (distance_left / (distance_left + distance_right))
 
-# Returns a map containing distances point and line spanned
+
+# Returns a map containing distances between [points] and line spanned
 # by [tops]
 def get_distance_map(points, tops):
     line_xs, line_ys = zip(*general.get_line(tops))
@@ -101,7 +103,8 @@ class Otolith():
 
         dimensions = (x, y, z)
 
-        slices = np.empty((dimensions[1], dimensions[0], dimensions[2]), dtype=np.uint8)
+        slices = np.empty((dimensions[1], dimensions[0], dimensions[2]),
+                          dtype=np.uint8)
 
         # Construct 3D array
         for z in range(dimensions[2]):
@@ -130,7 +133,8 @@ class Otolith():
             x1 = self.peaks[z][0][0]
             x2 = self.peaks[z][-1][0]
 
-            top_edge_xs, top_edge_ys = general.get_top_edge(self.slices[:, :, z])
+            top_edge_xs, top_edge_ys = general.get_top_edge(
+                self.slices[:, :, z])
 
             return [(x1, general.get_y_val(x1, top_edge_xs, top_edge_ys)),
                     (x2, general.get_y_val(x2, top_edge_xs, top_edge_ys))]
@@ -188,7 +192,7 @@ class Otolith():
         if np.any(max_tab):
             max_x_indices = max_tab[:, 0].astype(int)
             peaks = list(zip(top_edge_xs[max_x_indices],
-                            top_edge_ys[max_x_indices]))
+                             top_edge_ys[max_x_indices]))
 
         if np.any(min_tab):
             min_x_indices = min_tab[:, 0].astype(int)
@@ -197,7 +201,8 @@ class Otolith():
         return peaks, []
 
     def detect_peaks_scipy(self, top_edge_xs, top_edge_ys, top_edge_ys_i):
-        peaks, _ = signal.find_peaks(top_edge_ys_i, width=10, distance=10, prominence=1)
+        peaks, _ = signal.find_peaks(top_edge_ys_i, width=10, distance=10,
+                                     prominence=1)
         peaks = list(zip(top_edge_xs[peaks], top_edge_ys[peaks]))
         return peaks, []
 
@@ -215,16 +220,18 @@ class Otolith():
     # delta     =   parameter for peak detection algorithm
     # old_peaks =   peaks found in previous slice
     def detect_peaks_2d(self, z, old_peaks=[], verbose=False):
+        poly_order = 3
+
         img = self.slices[:, :, z]
         # self.slices[:, :, z] = img
 
         top_edge_xs, top_edge_ys = general.get_top_edge(img)
 
         # Smoothen top_edge_ys
-        if self.wl > 0:
+        if self.wl > poly_order:
             if len(top_edge_ys) < self.wl:
                 return []
-            top_edge_ys_hat = signal.savgol_filter(top_edge_ys, self.wl, 3)
+            top_edge_ys_hat = signal.savgol_filter(top_edge_ys, self.wl, poly_order)
         else:
             top_edge_ys_hat = top_edge_ys
         top_edge_ys_i = (top_edge_ys_hat * -1)
@@ -232,7 +239,8 @@ class Otolith():
         """ Find peaks in top edge """
         # todo: different algorithm?
 
-        peaks, valleys = self.detect_peaks_scipy(top_edge_xs, top_edge_ys, top_edge_ys_i)
+        peaks, valleys = self.detect_peaks_scipy(top_edge_xs, top_edge_ys,
+                                                 top_edge_ys_i)
 
         # If old_peaks where given check if new peaks are within range
         if old_peaks and self.p_margin > 0:
@@ -282,7 +290,8 @@ class Otolith():
         if verbose:
             self.peaks[z] = peaks
 
-            plt.plot(top_edge_xs, top_edge_ys_hat, ".", markersize=2, color="orange")
+            plt.plot(top_edge_xs, top_edge_ys_hat, ".", markersize=2,
+                     color="orange")
             plt.imshow(img, cmap="gray")
 
             if peaks:
@@ -337,10 +346,12 @@ class Otolith():
         middle_z = int(np.ceil(self.slices.shape[2] / 2))
 
         # Run from middle slice to end
-        first = self.detect_peaks_loop((middle_z, self.slices.shape[2]), inc, max_nps, verbose=verbose)
+        first = self.detect_peaks_loop((middle_z, self.slices.shape[2]), inc,
+                                       max_nps, verbose=verbose)
 
         # Run from middle slice - 1 to begin
-        second = self.detect_peaks_loop((middle_z - 1, 0), inc, max_nps, verbose=verbose)
+        second = self.detect_peaks_loop((middle_z - 1, 0), inc, max_nps,
+                                        verbose=verbose)
 
         return chain(first, second)
 
@@ -472,24 +483,25 @@ class Otolith():
             return vtk_functions.get_surface_area(polydata)
         return 0
 
-    # TODO: THIS IS NOT RIGHT YET
-    def get_proximal_surface_sulcus(self):
-        for z in range(self.slices.shape[2]):
-            img = self.slices[:, :, z]
+    # # TODO: THIS IS NOT RIGHT YET
+    # def get_proximal_surface_sulcus(self):
+    #     for z in range(self.slices.shape[2]):
+    #         img = self.slices[:, :, z]
 
-            sulcus_2d = self.get_sulcus_2d(z)
+    #         sulcus_2d = self.get_sulcus_2d(z)
 
-            if not np.any(img):
-                line_length = 0
-            else:
-                edge_xs, edge_ys = general.get_top_edge(img, True)
-                edge = list(zip(edge_xs, edge_ys))
-                line_length = general.get_line_length(edge)
+    #         if not np.any(img):
+    #             line_length = 0
+    #         else:
+    #             edge_xs, edge_ys = general.get_top_edge(img, True)
+    #             edge = list(zip(edge_xs, edge_ys))
+    #             line_length = general.get_line_length(edge)
 
-            yield z, line_length
+    #         yield z, line_length
 
     def get_dims(self):
-        return (self.slices.shape[1], self.slices.shape[0], self.slices.shape[2])
+        return (self.slices.shape[1], self.slices.shape[0],
+                self.slices.shape[2])
 
     def __repr__(self):
         s = "OTOLITH\n"

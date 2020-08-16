@@ -3,9 +3,12 @@ from vtk.util import numpy_support
 import numpy as np
 import os
 import general
+import shutil
+import cv2
 
 
 """ MANIPULATE IMGDATA """
+
 
 def gauss_imgdata(imgdata, sigma=3):
     gauss = vtk.vtkImageGaussianSmooth()
@@ -32,7 +35,9 @@ def constantpad(imgdata, padding):
     extent = imgdata.GetExtent()
     pad = vtk.vtkImageConstantPad()
     pad.SetInputData(imgdata)
-    pad.SetOutputWholeExtent(extent[0] - padding, extent[1] + padding, extent[2] - padding, extent[3] + padding, extent[4] - padding, extent[5] + padding)
+    pad.SetOutputWholeExtent(extent[0] - padding, extent[1] + padding,
+                             extent[2] - padding, extent[3] + padding,
+                             extent[4] - padding, extent[5] + padding)
     pad.Update()
 
     return pad.GetOutput()
@@ -62,7 +67,8 @@ def center_imgdata(imgdata):
 # crop according to extent
 def extract_voi(imgdata, xi, xf, yi, yf, zi, zf, padding=0):
     voi = vtk.vtkExtractVOI()
-    voi.SetVOI(xi - padding, xf + padding, yi - padding, yf + padding, zi - padding, zf + padding)
+    voi.SetVOI(xi - padding, xf + padding, yi - padding, yf + padding,
+               zi - padding, zf + padding)
     voi.SetInputData(imgdata)
     voi.SetSampleRate(1, 1, 1)
     voi.Update()
@@ -79,34 +85,34 @@ def read_ply(filename):
     return reader.GetOutput()
 
 
-def normals(polydata):
+def normals(pd):
     normals = vtk.vtkPolyDataNormals()
     normals.SplittingOff()
-    normals.SetInputData(polydata)
+    normals.SetInputData(pd)
     normals.ComputePointNormalsOn()
     normals.Update()
     return normals.GetOutput()
 
 
 # Write vtk polydata to .ply file
-def write_ply(polydata, name):
+def write_ply(pd, name):
     writer = vtk.vtkPLYWriter()
-    writer.SetInputData(polydata)
+    writer.SetInputData(pd)
     writer.SetFileName("%s" % name)
     writer.Write()
 
 
-def write_vtk(polydata, filename):
+def write_vtk(pd, filename):
     writer = vtk.vtkDataSetWriter()
-    writer.SetInputData(polydata)
+    writer.SetInputData(pd)
     writer.SetFileName(filename)
     writer.Write()
 
 
-def add_arr_to_pd(polydata, data_array, name):
+def add_arr_to_pd(pd, data_array, name):
     vtk_da = numpy_support.numpy_to_vtk(data_array)
     vtk_da.SetName(name)
-    polydata.GetPointData().AddArray(vtk_da)
+    pd.GetPointData().AddArray(vtk_da)
 
 
 """ CONVERSIONS """
@@ -146,7 +152,8 @@ def arr_to_imgdata(array):
     array = array.transpose(2, 0, 1)
     array = np.flip(array, axis=1)
 
-    data_array = numpy_support.numpy_to_vtk(array.ravel(), deep=True, array_type=vtk.VTK_DOUBLE)
+    data_array = numpy_support.numpy_to_vtk(array.ravel(), deep=True,
+                                            array_type=vtk.VTK_DOUBLE)
 
     imgdata = vtk.vtkImageData()
     imgdata.SetDimensions(array.shape[2], array.shape[1], array.shape[0])
@@ -203,16 +210,15 @@ def folder_to_imgdata(input_folder, verbose=False):
 """ MEASURE """
 
 
-def get_volume(polydata):
+def get_volume(pd):
     mp = vtk.vtkMassProperties()
-    mp.SetInputConnection(polydata)
+    mp.SetInputData(pd)
     mp.Update()
-
     return mp.GetVolume()
 
-def get_surface_area(polydata):
-    mp = vtk.vtkMassProperties()
-    mp.SetInputData(polydata)
-    mp.Update()
 
+def get_surface_area(pd):
+    mp = vtk.vtkMassProperties()
+    mp.SetInputData(pd)
+    mp.Update()
     return mp.GetSurfaceArea()

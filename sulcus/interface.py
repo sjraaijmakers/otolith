@@ -3,18 +3,15 @@ sys.path.insert(1, '../functions')
 
 import general
 import vtk_functions
+from Otolith import Otolith
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from pickle_functions import open_pickle, save_pickle
-
 import os
 import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
-
-from Otolith import Otolith
 from enum import Enum
 
 
@@ -27,6 +24,7 @@ from enum import Enum
 
 
 SULCUS_VAL = 255
+
 
 class VM(Enum):
     count_nzp = 1
@@ -115,11 +113,11 @@ class Interface:
 
         # """ DEBUG """
 
-        oto = Otolith()
-        oto.read_from_folder("/home/steven/scriptie/INPUTS/sphere_r_100")
-        oto.name = "sphere"
-        self.set_otolith(oto)
-        self.img_load
+        # oto = Otolith()
+        # oto.read_from_folder("/home/steven/scriptie/INPUTS/sphere_r_100")
+        # oto.name = "sphere"
+        # self.set_otolith(oto)
+        # self.img_load
 
         # otolith = Otolith()
         # slices = open_pickle("/home/steven/Documents/school/scriptie/pickle_files/sphere_pickle.pkl")
@@ -182,14 +180,18 @@ class Interface:
                               command=self.file_open_peaks)
         menu_file.add_cascade(label="Export", menu=menu_file_export_id)
         menu_file_export_id.add_command(label="Sulcus image stack",
-                                     command=lambda: self.file_export_id(False))
+                                        command=lambda:
+                                        self.file_export_id(False))
         menu_file_export_id.add_command(label="Otolith + sulcus image stack",
-                                     command=lambda: self.file_export_id(True))
+                                        command=lambda:
+                                        self.file_export_id(True))
         menu_file_export_id.add_separator()
         menu_file_export_id.add_command(label="Sulcus polydata",
-                                     command=lambda: self.file_export_pd(False))
+                                        command=lambda:
+                                        self.file_export_pd(False))
         menu_file_export_id.add_command(label="Otolith polydata",
-                                     command=lambda: self.file_export_pd(True))
+                                        command=lambda:
+                                        self.file_export_pd(True))
 
         menu_file.add_separator()
         menu_file.add_command(label="Quit", accelerator="Q", command=self.exit)
@@ -334,7 +336,7 @@ class Interface:
         tk.Label(self.open_window, text="k:") \
             .grid(row=4, column=0, padx=15, pady=(15, 0))
         tk.Scale(self.open_window, variable=self.pda_k, from_=1, to=10,
-                orient="horizontal") \
+                 orient="horizontal") \
             .grid(row=4, padx=15, pady=(15, 0), column=1)
 
         tk.Checkbutton(self.open_window, text="Run for current slice only",
@@ -344,7 +346,8 @@ class Interface:
                        variable=self.show_progress) \
             .grid(row=6, column=0, columnspan=2, padx=15, pady=(15, 0))
 
-        self.run_button = tk.Button(self.open_window, text="Run PDA", command=self.pda_switch)
+        self.run_button = tk.Button(self.open_window, text="Run PDA",
+                                    command=self.pda_switch)
         self.run_button.grid(row=7, columnspan=2, padx=15, pady=15)
 
         self.open_window.bind('<Return>', lambda x: self.pda_switch())
@@ -357,7 +360,8 @@ class Interface:
 
     """ FILE functions """
     def file_open_folder(self):
-        folder = tk.filedialog.askdirectory(title="Open otolith image stack (folder)")
+        folder = tk.filedialog.askdirectory(
+            title="Open otolith image stack (folder)")
 
         if folder:
             otolith = Otolith()
@@ -379,9 +383,10 @@ class Interface:
         else:
             initialfile = self.otolith.name + "_PEAKSMAP.pkl"
 
-        filename = tk.filedialog.asksaveasfilename(title="Save peaks-map as...",
+        filename = tk.filedialog.asksaveasfilename(title="Save peaks as...",
                                                    initialfile=initialfile,
-                                                   filetypes=[("pkl", "*.pkl")])
+                                                   filetypes=[("pkl", "*.pkl")]
+                                                   )
 
         if filename:
             self.peaks_file_name = filename
@@ -391,7 +396,8 @@ class Interface:
 
     def file_open_peaks(self):
         filename = tk.filedialog.askopenfilename(title="Load peaks-map",
-                                                 filetypes=[("pkl", "*.pkl")])
+                                                 filetypes=[("pkl", "*.pkl")]
+                                                 )
 
         if filename and os.path.isfile(filename):
             self.set_peaks_from_filename(filename)
@@ -407,7 +413,9 @@ class Interface:
             if include_otolith:
                 sulcus = self.otolith.slices + sulcus
 
-            general.arr_to_imgseq(sulcus, "%s/%s_sulcus" % (folder, self.otolith.name), verbose=True)
+            general.arr_to_imgseq(sulcus, "%s/%s_sulcus" % (folder,
+                                                            self.otolith.name),
+                                  verbose=True)
 
     def file_export_pd(self, is_otolith=False):
         if is_otolith:
@@ -417,7 +425,8 @@ class Interface:
 
         filename = tk.filedialog.asksaveasfilename(title="Save polydata as...",
                                                    initialfile=initialfile,
-                                                   filetypes=[("ply", "*.ply")])
+                                                   filetypes=[("ply", "*.ply")]
+                                                   )
 
         if filename:
             if not is_otolith:
@@ -457,7 +466,8 @@ class Interface:
 
     # Load image displayed on canvas frame
     def img_load(self, load_sulcus=True):
-        self.slice_nr.config(text="%s / %s" % (self.current_z, self.otolith.slices.shape[2] - 1))
+        self.slice_nr.config(text="%s / %s" % (self.current_z,
+                                               self.otolith.slices.shape[2]-1))
 
         self.img.set_array(self.otolith.slices[:, :, self.current_z])
 
@@ -482,8 +492,8 @@ class Interface:
 
     # Load image with index z
     def img_load_z(self, z):
-        if z > self.otolith.slices.shape[2] - 1:
-            self.current_z = self.otolith.slices.shape[2] - 1
+        if z > self.otolith.slices.shape[2]-1:
+            self.current_z = self.otolith.slices.shape[2]-1
         elif z < 0:
             self.current_z = 0
         else:
@@ -509,7 +519,8 @@ class Interface:
         sulcus_2d = self.otolith.get_sulcus_2d(self.current_z)
 
         if np.any(sulcus_2d):
-            oto_sulcus_2d = self.otolith.slices[:, :, self.current_z] + (sulcus_2d * 255)
+            oto_sulcus_2d = self.otolith.slices[:, :, self.current_z] + \
+                            (sulcus_2d * 255)
             self.img.set_array(oto_sulcus_2d)
 
     # Remove sulcus from slice img
@@ -772,7 +783,8 @@ class Interface:
 
         body = "Surface area (voxels): %s\n" % s
         body += "Voxel resolution: %s\n" % self.voxel_resolution.get()
-        body += "%s surface area of %s: %s μm^2" % (side_string, part_string, surface)
+        body += "%s surface area of %s: %s μm^2" % \
+                (side_string, part_string, surface)
 
         self.open_window.destroy()
         self.window_info("Measurements", body, copy=surface)
