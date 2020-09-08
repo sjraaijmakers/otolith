@@ -7,7 +7,7 @@ import shutil
 import cv2
 
 
-""" MANIPULATE IMGDATA """
+""" IMGDATA """
 
 
 def gauss_imgdata(imgdata, sigma=3):
@@ -31,7 +31,7 @@ def resize_imgdata(imgdata, omega):
     return resampler.GetOutput()
 
 
-def constantpad(imgdata, padding):
+def pad_imgdata(imgdata, padding):
     extent = imgdata.GetExtent()
     pad = vtk.vtkImageConstantPad()
     pad.SetInputData(imgdata)
@@ -84,16 +84,6 @@ def read_ply(filename):
     reader.Update()
     return reader.GetOutput()
 
-
-def normals(pd):
-    normals = vtk.vtkPolyDataNormals()
-    normals.SplittingOff()
-    normals.SetInputData(pd)
-    normals.ComputePointNormalsOn()
-    normals.Update()
-    return normals.GetOutput()
-
-
 # Write vtk polydata to .ply file
 def write_ply(pd, name):
     writer = vtk.vtkPLYWriter()
@@ -115,16 +105,38 @@ def add_arr_to_pd(pd, data_array, name):
     pd.GetPointData().AddArray(vtk_da)
 
 
+def normals(pd):
+    normals = vtk.vtkPolyDataNormals()
+    normals.SplittingOff()
+    normals.SetInputData(pd)
+    normals.ComputePointNormalsOn()
+    normals.Update()
+    return normals.GetOutput()
+
+
+def get_volume(pd):
+    mp = vtk.vtkMassProperties()
+    mp.SetInputData(pd)
+    mp.Update()
+    return mp.GetVolume()
+
+
+def get_surface_area(pd):
+    mp = vtk.vtkMassProperties()
+    mp.SetInputData(pd)
+    mp.Update()
+    return mp.GetSurfaceArea()
+
+
 """ CONVERSIONS """
 
 
-# Converts 3d imagedata to 3d numpy array
 def imgdata_to_arr(imgdata):
     dims = imgdata.GetDimensions()
     vtk_data = imgdata.GetPointData().GetScalars()
     numpy_data = numpy_support.vtk_to_numpy(vtk_data)
 
-    # This works; but why?!
+    # This works; why?!
     numpy_data = numpy_data.reshape(dims[2], dims[1], dims[0])
     numpy_data = numpy_data.transpose(1, 2, 0)
     # numpy_data = np.flip(numpy_data, axis=1)
@@ -177,15 +189,14 @@ def arr_to_pd(arr):
     return imgdata_to_pd(imgdata)
 
 
-# From folder to imagedata
-# TODO: possible to derive z and file prefix in vtk?
+# Read folder to imagedata
 def folder_to_imgdata(input_folder, verbose=False):
     z = general.count_files_in_folder(input_folder, "tif")
 
     if verbose:
         print("%s slices for %s" % (z, input_folder))
 
-    p = 3 if z < 999 else 4
+    p = len(str(z))
 
     file_prefix = input_folder + "/" + general.get_file_prefix(input_folder, z)
 
@@ -206,19 +217,3 @@ def folder_to_imgdata(input_folder, verbose=False):
 
     return reader.GetOutput()
 
-
-""" MEASURE """
-
-
-def get_volume(pd):
-    mp = vtk.vtkMassProperties()
-    mp.SetInputData(pd)
-    mp.Update()
-    return mp.GetVolume()
-
-
-def get_surface_area(pd):
-    mp = vtk.vtkMassProperties()
-    mp.SetInputData(pd)
-    mp.Update()
-    return mp.GetSurfaceArea()

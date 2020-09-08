@@ -11,12 +11,12 @@ from vtk.util import numpy_support
 if __name__ == "__main__":
     r = 100
 
-    polydata = vtk_functions.read_ply("/home/steven/Documents/school/scriptie/INPUTS/meshes/sphere_kutter.ply")
+    polydata = vtk_functions.read_ply("/home/steven/scriptie_old/INPUTS/meshes/sphere_r_100_g_5.ply")
     polydata = vtk_functions.normals(polydata)
 
     mcFilter = vtk.vtkCurvatures()
     mcFilter.SetCurvatureTypeToMean()
-    mcFilter.SetInputData(normals.GetOutput())
+    mcFilter.SetInputData(polydata)
     mcFilter.Update()
 
     points = mcFilter.GetOutput().GetPoints()
@@ -36,4 +36,4 @@ if __name__ == "__main__":
 
     mcFilter.GetOutput().GetPointData().AddArray(vtk_da)
 
-    vtk_functions.write_vtk(mcFilter.GetOutput(), "mc_error.vtk")
+    vtk_functions.write_vtk(mcFilter.GetOutput(), "mc_error_standard.vtk")

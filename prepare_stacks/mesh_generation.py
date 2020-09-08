@@ -13,17 +13,19 @@ import sys
 
 
 def run(input_folder, output_folder):
-    sigma = 1
-    padding = sigma * 2
-
     imgdata = vtk_functions.folder_to_imgdata(input_folder)
 
     print("Read folder...")
 
-    # imgdata = vtk_functions.constant(imgdata, padding)
-    # imgdata = vtk_functions.gauss(imgdata, sigma=sigma)
+    sigma = 5
 
-    # print("Applied Gaussian smoothing")
+    if sigma > 0:
+        padding = sigma * 2
+
+        imgdata = vtk_functions.pad_imgdata(imgdata, padding)
+        imgdata = vtk_functions.gauss_imgdata(imgdata, sigma=sigma)
+
+        print("Applied Gaussian smoothing")
 
     polydata = vtk_functions.imgdata_to_pd(imgdata)
 
