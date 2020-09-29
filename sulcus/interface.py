@@ -14,6 +14,10 @@ import tkinter.filedialog
 import tkinter.messagebox
 from enum import Enum
 
+import seaborn as sns
+
+sns.set()
+
 
 """ TODO:
     - disable menus when otolith is not set yet.
@@ -50,7 +54,7 @@ class Interface:
 
         # Options
         self.option_interpolate_sulcus = tk.BooleanVar(value=True)
-        self.option_top_edge = tk.BooleanVar(value=False)
+        self.option_E = tk.BooleanVar(value=True)
 
         # PDA
         self.pda_wl = tk.IntVar(value="21")
@@ -72,10 +76,10 @@ class Interface:
         # Frame containing the image
         self.fig = plt.Figure()
         self.axes = self.fig.add_subplot(111)
-        self.axes.set_facecolor([0, 0, 0])
-        self.img = None
-        self.img_edge, = self.axes.plot([], [], ".",
-                                        markersize=3, color="pink")
+        self.axes.set_facecolor([1, 1, 1])
+        self.img_oto = None
+        self.img_e, = self.axes.plot([], [], ".",
+                                        markersize=3, color="orange")
 
         self.img_peaks, = self.axes.plot([], [], "o", color="red")
 
@@ -113,11 +117,11 @@ class Interface:
 
         # """ DEBUG """
 
-        # oto = Otolith()
-        # oto.read_from_folder("/home/steven/scriptie/INPUTS/sphere_r_100")
-        # oto.name = "sphere"
-        # self.set_otolith(oto)
-        # self.img_load
+        oto = Otolith()
+        oto.read_from_folder("/home/steven/scriptie/inputs/testset/otoF83")
+        oto.name = "otoF83_debug"
+        self.set_otolith(oto)
+        self.img_load()
 
         # otolith = Otolith()
         # slices = open_pickle("/home/steven/Documents/school/scriptie/pickle_files/sphere_pickle.pkl")
@@ -215,9 +219,9 @@ class Interface:
         menu_view.add_checkbutton(label="Show interpolated sulcus",
                                   command=self.img_load,
                                   variable=self.option_interpolate_sulcus)
-        menu_view.add_checkbutton(label="Show top-edge",
+        menu_view.add_checkbutton(label="Show E",
                                   command=self.img_load,
-                                  variable=self.option_top_edge)
+                                  variable=self.option_E)
 
         # RUN menu
         menu_run = tk.Menu(menubar)
@@ -276,7 +280,7 @@ class Interface:
         self.axes.set_xlim(-padding, height + padding)
         self.axes.set_ylim(-padding, width + padding)
         self.axes.invert_yaxis()
-        self.img = self.axes.imshow(np.zeros((width, height), dtype=np.uint8),
+        self.img_oto = self.axes.imshow(np.zeros((width, height), dtype=np.uint8),
                                     vmin=0, vmax=SULCUS_VAL, cmap="gray")
 
         self.otolith_label.config(text="%s" % self.otolith.name)
@@ -469,9 +473,8 @@ class Interface:
         self.slice_nr.config(text="%s / %s" % (self.current_z,
                                                self.otolith.slices.shape[2]-1))
 
-        self.img.set_array(self.otolith.slices[:, :, self.current_z])
-
-        self.img_add_top_edge(self.option_top_edge.get())
+        self.img_oto.set_array(self.otolith.slices[:, :, self.current_z])
+        self.img_add_E(self.option_E.get())
 
         current_peaks = self.get_current_peaks()
 
@@ -501,14 +504,14 @@ class Interface:
 
         self.img_load()
 
-    def img_add_top_edge(self, show=True):
+    def img_add_E(self, show=True):
         if show:
             img = self.otolith.slices[:, :, self.current_z]
             edge_xs, edge_ys = general.get_top_edge(img)
 
-            self.img_edge.set_data(edge_xs, edge_ys)
+            self.img_e.set_data(edge_xs, edge_ys)
         else:
-            self.img_edge.set_data([], [])
+            self.img_e.set_data([], [])
 
     # Increment image with icn
     def img_inc(self, inc):
@@ -521,11 +524,11 @@ class Interface:
         if np.any(sulcus_2d):
             oto_sulcus_2d = self.otolith.slices[:, :, self.current_z] + \
                             (sulcus_2d * 255)
-            self.img.set_array(oto_sulcus_2d)
+            self.img_oto.set_array(oto_sulcus_2d)
 
     # Remove sulcus from slice img
     def img_remove_sulcus(self):
-        self.img.set_array(self.otolith.slices[:, :, self.current_z])
+        self.img_oto.set_array(self.otolith.slices[:, :, self.current_z])
 
     # Add peaks to Otolith on click
     def img_click_event(self, event, radius=15):

@@ -1,4 +1,5 @@
 import sys
+sys.path.insert(1, '../functions')
 
 import vtk_functions
 
@@ -9,7 +10,6 @@ from vtk.util import numpy_support
 import pandas as pd
 import os
 
-sys.path.insert(1, '../functions')
 sns.set()
 
 
@@ -20,8 +20,8 @@ class CurvatureSegmentation():
         self.set_normals()
         self.set_mean_curvature()
 
-        self.eps = 2
-        self.min_cluster_count = 100
+        self.eps = 4
+        self.min_cluster_count = 10
 
     def set_normals(self):
         normals = vtk.vtkPolyDataNormals()
@@ -46,13 +46,13 @@ class CurvatureSegmentation():
     # Filter vertices in df based on heuristics
     def filter_df(self, df):
         # check if normal vector points to side
-        df = df[df["normal_vec"].apply(lambda x: not abs(x[1]) > abs(x[0]))]
+        df = df[df["n"].apply(lambda x: not abs(x[1]) > abs(x[0]))]
 
         # check if mean curvature is positive
-        df = df[df["mean_curvature"] > 0]
+        df = df[df["H"] > 0.01]
 
         # cluster remaining vertices points
-        cluster_labels = self.get_cluster_labels(df["point"].to_list())
+        cluster_labels = self.get_cluster_labels(df["coord"].to_list())
         df["cluster"] = cluster_labels
 
         # remove noise cluster (-1)
@@ -74,22 +74,24 @@ class CurvatureSegmentation():
 
     def get_clusters(self):
         xyzs = self.polydata.GetPoints()
-        normal_vecs = self.polydata.GetPointData().GetArray("Normals")
-        mc_vals = self.polydata.GetPointData().GetArray("Mean_Curvature")
+        normals = self.polydata.GetPointData().GetArray("Normals")
+        mean_curvatures = self.polydata.GetPointData().GetArray("Mean_Curvature")
 
         # convert polydata info to pandas dataframe
         df = pd.DataFrame()
 
-        df["point"] = list(map(tuple, numpy_support.vtk_to_numpy(xyzs.GetData())))
-        df["normal_vec"] = list(map(tuple,
-                                    numpy_support.vtk_to_numpy(normal_vecs)))
-        df["mean_curvature"] = numpy_support.vtk_to_numpy(mc_vals)
+        df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(xyzs.GetData())))
+        df["n"] = list(map(tuple, numpy_support.vtk_to_numpy(normals)))
+        df["H"] = numpy_support.vtk_to_numpy(mean_curvatures)
 
-        print("Polydata info to pandas DataFrame")
+        print("Polydata to pandas DataFrame (%s points)" % xyzs.GetNumberOfPoints())
 
         df = self.filter_df(df)
 
-        print("Filtered DF. Clusters: %s " % df["cluster"].unique())
+        print("Filtered DF")
+
+        print(df.groupby("cluster").size())
+        print("Clusters: %s " % df["cluster"].unique())
 
         # covert df to vtkpoints
         vtk_points = vtk.vtkPoints()
@@ -98,7 +100,7 @@ class CurvatureSegmentation():
         cluster_labels.SetName("Cluster")
 
         for _, row in df.iterrows():
-            vtk_points.InsertNextPoint(row["point"])
+            vtk_points.InsertNextPoint(row["coord"])
             cluster_labels.InsertNextTuple1(row["cluster"])
 
         points_poly = vtk.vtkPolyData()

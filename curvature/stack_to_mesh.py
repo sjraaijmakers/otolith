@@ -1,0 +1,80 @@
+import sys
+sys.path.insert(1, '../functions')
+
+import vtk_functions
+from vtk.util import numpy_support
+import meshlabxml as mlx
+import numpy as np
+import os
+
+
+def procedure(input_folder, mesh_folder, sigma=5, target_reduction=0.5**3,
+              smoothing_iterations=40):
+    basename = os.path.splitext(os.path.basename(input_folder))[0]
+    print(basename)
+
+    # VTK
+    imgdata = vtk_functions.folder_to_imgdata(input_folder)
+
+    if sigma > 0:
+        padding = sigma * 4
+        imgdata = vtk_functions.pad_imgdata(imgdata, padding)
+        imgdata = vtk_functions.gauss_imgdata(imgdata, sigma=sigma)
+        print("Applied Gaussian smoothing with s=%s" % sigma)
+
+    polydata = vtk_functions.imgdata_to_pd(imgdata)
+    ply_file_name =  "%s/%s.ply" % (mesh_folder, basename)
+    vtk_functions.write_ply(polydata, ply_file_name)
+
+    # MESHLAB
+    input_mesh = ply_file_name
+    output_mesh = "%s/%s_MLX.ply" % (mesh_folder, basename)
+
+    mesh_topology = mlx.files.measure_topology(input_mesh)
+    target_faces = int(np.round(mesh_topology["face_num"] * target_reduction))
+
+    simplified_mesh = mlx.FilterScript(file_in=input_mesh, file_out=output_mesh)
+
+    t_faces = int(np.round(mesh_topology["face_num"] * 0.5 ** 1))
+    mlx.remesh.simplify(simplified_mesh,
+                            texture=False,
+                            faces=t_faces,
+                            quality_thr=1,
+                            preserve_topology=False,
+                            preserve_boundary=True)
+
+    t_faces = int(np.round(mesh_topology["face_num"] * 0.5 ** 2))
+    mlx.remesh.simplify(simplified_mesh,
+                            texture=False,
+                            faces=t_faces,
+                            quality_thr=1,
+                            preserve_topology=False,
+                            preserve_boundary=True)
+
+    t_faces = int(np.round(mesh_topology["face_num"] * 0.5 ** 3))
+    mlx.remesh.simplify(simplified_mesh,
+                            texture=False,
+                            faces=t_faces,
+                            quality_thr=1,
+                            preserve_topology=False,
+                            preserve_boundary=True)
+
+    t_faces = int(np.round(mesh_topology["face_num"] * 0.5 ** 4))
+    mlx.remesh.simplify(simplified_mesh,
+                            texture=False,
+                            faces=t_faces,
+                            quality_thr=1,
+                            preserve_topology=False,
+                            preserve_boundary=True)
+
+    mlx.smooth.taubin(simplified_mesh, iterations=smoothing_iterations)
+
+    simplified_mesh.run_script() # Run the script
+
+
+if __name__ == "__main__":
+    # input_folder = "/home/steven/scriptie/inputs/edited_scans/otoM203_0.6"
+    input_folder = "/home/steven/scriptie/inputs/edited_scans/otoI48"
+    mesh_folder = "/home/steven/scriptie/inputs/meshes"
+
+    procedure(input_folder, mesh_folder)

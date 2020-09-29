@@ -11,7 +11,7 @@ from vtk.util import numpy_support
 if __name__ == "__main__":
     r = 100
 
-    polydata = vtk_functions.read_ply("/home/steven/scriptie_old/INPUTS/meshes/sphere_r_100_g_5.ply")
+    polydata = vtk_functions.read_ply("/home/steven/scriptie/inputs/meshes/sphere_r_100_p_20_MLX.ply")
     polydata = vtk_functions.normals(polydata)
 
     mcFilter = vtk.vtkCurvatures()
@@ -36,4 +36,4 @@ if __name__ == "__main__":
 
     mcFilter.GetOutput().GetPointData().AddArray(vtk_da)
 
-    vtk_functions.write_vtk(mcFilter.GetOutput(), "mc_error_standard.vtk")
+    vtk_functions.write_vtk(mcFilter.GetOutput(), "mc_error_MLX.vtk")

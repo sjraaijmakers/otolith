@@ -96,24 +96,7 @@ class Otolith():
         self.name = folder.split("/")[-1]
         self.peaks = {}
 
-        files = sorted(glob.glob(folder + "/*." + file_format))
-
-        y, x = cv2.imread(files[0], cv2.IMREAD_GRAYSCALE).shape
-        z = len(files)
-
-        dimensions = (x, y, z)
-
-        slices = np.empty((dimensions[1], dimensions[0], dimensions[2]),
-                          dtype=np.uint8)
-
-        # Construct 3D array
-        for z in range(dimensions[2]):
-            image = cv2.imread(files[z], cv2.IMREAD_GRAYSCALE)
-            slices[:, :, z] = image
-
-            if verbose:
-                print("loaded %d" % files[z])
-
+        slices = general.folder_to_arr(folder)
         self.set_slices(slices)
 
     def set_peaks(self, peaks):

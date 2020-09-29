@@ -1,3 +1,6 @@
+""" wrapper for vtk functions """
+
+
 import vtk
 from vtk.util import numpy_support
 import numpy as np
@@ -15,6 +18,7 @@ def gauss_imgdata(imgdata, sigma=3):
     gauss.SetDimensionality(3)
     gauss.SetInputData(imgdata)
     gauss.SetStandardDeviations(sigma, sigma, sigma)
+    gauss.SetRadiusFactors(sigma, sigma, sigma)
     gauss.Update()
     return gauss.GetOutput()
 
@@ -217,3 +221,27 @@ def folder_to_imgdata(input_folder, verbose=False):
 
     return reader.GetOutput()
 
+
+def folder_to_curv_arr(input_folder, sigma=3):
+    imgdata = folder_to_imgdata(input_folder)
+
+    if sigma > 0:
+        padding = sigma * 2
+        imgdata = pad_imgdata(imgdata, padding)
+        imgdata = gauss_imgdata(imgdata, sigma=sigma)
+
+    polydata = imgdata_to_pd(imgdata)
+
+    return pd_to_curv_arr(polydata)
+
+
+def pd_to_curv_arr(pd):
+    polydata = normals(pd)
+
+    mcFilter = vtk.vtkCurvatures()
+    mcFilter.SetCurvatureTypeToMean()
+    mcFilter.SetInputData(polydata)
+    mcFilter.Update()
+
+    polydata = mcFilter.GetOutput()
+    return numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))

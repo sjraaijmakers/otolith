@@ -39,21 +39,21 @@ def sphere(r, val=255, padding=0):
     return (arr <= 1.0) * val
 
 
-def arr_to_imgseq(arr, folder, img_format="tif", verbose=False):
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+def arr_to_imgseq(arr, output_folder, img_format="tif", verbose=False):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     # delete folder if it already exists
     else:
-        shutil.rmtree(folder)
-        os.makedirs(folder)
+        shutil.rmtree(output_folder)
+        os.makedirs(output_folder)
 
     for i in range(arr.shape[2]):
-        name = folder + "/img_" + str(f'{i:04}' + "." + img_format)
+        name = output_folder + "/img_" + str(f'{i:04}' + "." + img_format)
         if verbose:
             print("Writing " + name + "...")
         cv2.imwrite(name, arr[:, :, i])
 
-    print("Finished writing %s slices to %s" % (arr.shape[2], folder))
+    print("Finished writing %s slices to %s" % (arr.shape[2], output_folder))
 
 
 # Functions returns "y_val" for corresponding "x_val"
@@ -162,3 +162,28 @@ def get_contour_length(img, ignore_childs=True):
 def arr_to_points(arr):
     xs, ys = np.nonzero(arr.T)
     return list(zip(xs, ys))
+
+
+# Folder to numpy array
+def folder_to_arr(folder, file_format="tif", verbose=False):
+    files = sorted(glob.glob(folder + "/*." + file_format))
+
+    first_img = cv2.imread(files[0], cv2.IMREAD_UNCHANGED)
+    y, x = first_img.shape
+    z = len(files)
+
+    dimensions = (x, y, z)
+
+    # init
+    slices = np.empty((dimensions[1], dimensions[0], dimensions[2]),
+                      dtype=first_img.dtype)
+
+    # Construct 3D array
+    for z in range(dimensions[2]):
+        image = cv2.imread(files[z], cv2.IMREAD_UNCHANGED)
+        slices[:, :, z] = image
+
+        if verbose:
+            print("loaded %d" % files[z])
+
+    return slices
