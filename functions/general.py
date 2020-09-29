@@ -138,33 +138,13 @@ def get_top_edge(img, reverse=False):
     return np.array(edge_xs), np.array(edge_ys)
 
 
-# Get border length of contour using CV2
-def get_contour_length(img, ignore_childs=True):
-    if not np.any(img):
-        return 0
-
-    mode = cv2.RETR_EXTERNAL
-
-    if not ignore_childs:
-        mode = cv2.RETR_TREE
-
-    contours, _ = cv2.findContours(img, mode, cv2.CHAIN_APPROX_SIMPLE)
-
-    total_length = 0
-
-    for cnt in contours:
-        total_length += 0.95 * cv2.arcLength(cnt, True)
-
-    return total_length
-
-
 # Converts all non-zero pixels in 2D array to list of 2D points
 def arr_to_points(arr):
     xs, ys = np.nonzero(arr.T)
     return list(zip(xs, ys))
 
 
-# Folder to numpy array
+# Image stack (folder) to 3D numpy array
 def folder_to_arr(folder, file_format="tif", verbose=False):
     files = sorted(glob.glob(folder + "/*." + file_format))
 

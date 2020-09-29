@@ -20,7 +20,7 @@ class CurvatureSegmentation():
         self.set_normals()
         self.set_mean_curvature()
 
-        self.eps = 4
+        self.eps = 3
         self.min_cluster_count = 10
 
     def set_normals(self):
@@ -60,6 +60,9 @@ class CurvatureSegmentation():
 
         # filter out cluster smaller than min_cluster_count
         df = df.groupby("cluster").filter(lambda x: x["cluster"].count() >
+                                          self.min_cluster_count)
+
+        o = df.groupby("cluster").filter(lambda x: x["cluster"].count() >
                                           self.min_cluster_count)
 
         # get average normal vec per cluster

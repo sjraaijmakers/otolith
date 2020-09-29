@@ -8,9 +8,9 @@ import numpy as np
 import os
 
 
-def procedure(input_folder, mesh_folder, sigma=5, target_reduction=0.5**3,
+def stack_to_mesh(input_folder, mesh_folder, sigma=5, target_reduction=0.5**3,
               smoothing_iterations=40):
-    basename = os.path.splitext(os.path.basename(input_folder))[0]
+    basename = os.path.basename(input_folder)
     print(basename)
 
     # VTK

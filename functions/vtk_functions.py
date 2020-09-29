@@ -31,7 +31,6 @@ def resize_imgdata(imgdata, omega):
     resampler.SetAxisMagnificationFactor(2, omega)
     resampler.SetInterpolationModeToCubic()
     resampler.Update()
-
     return resampler.GetOutput()
 
 
@@ -43,7 +42,6 @@ def pad_imgdata(imgdata, padding):
                              extent[2] - padding, extent[3] + padding,
                              extent[4] - padding, extent[5] + padding)
     pad.Update()
-
     return pad.GetOutput()
 
 
@@ -64,7 +62,6 @@ def center_imgdata(imgdata):
     center.SetInputData(imgdata)
     center.SetCenterImage(1)
     center.Update()
-
     return center.GetOutput()
 
 
@@ -140,7 +137,7 @@ def imgdata_to_arr(imgdata):
     vtk_data = imgdata.GetPointData().GetScalars()
     numpy_data = numpy_support.vtk_to_numpy(vtk_data)
 
-    # This works; why?!
+    # why reshape + transpose?
     numpy_data = numpy_data.reshape(dims[2], dims[1], dims[0])
     numpy_data = numpy_data.transpose(1, 2, 0)
     # numpy_data = np.flip(numpy_data, axis=1)
@@ -244,4 +241,7 @@ def pd_to_curv_arr(pd):
     mcFilter.Update()
 
     polydata = mcFilter.GetOutput()
-    return numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))
+
+    curv_arr =  numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))
+
+    return curv_arr
