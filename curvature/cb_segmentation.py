@@ -20,7 +20,8 @@ class CurvatureSegmentation():
         self.set_normals()
         self.set_mean_curvature()
 
-        self.eps = 3
+        self.eps = 4
+        self.min_H_value = 0.01
         self.min_cluster_count = 10
 
     def set_normals(self):
@@ -49,7 +50,7 @@ class CurvatureSegmentation():
         df = df[df["n"].apply(lambda x: not abs(x[1]) > abs(x[0]))]
 
         # check if mean curvature is positive
-        df = df[df["H"] > 0.01]
+        df = df[df["H"] > self.min_H_value]
 
         # cluster remaining vertices points
         cluster_labels = self.get_cluster_labels(df["coord"].to_list())
