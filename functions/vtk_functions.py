@@ -86,45 +86,45 @@ def read_ply(filename):
     return reader.GetOutput()
 
 # Write vtk polydata to .ply file
-def write_ply(pd, name):
+def write_ply(polydata, name):
     writer = vtk.vtkPLYWriter()
-    writer.SetInputData(pd)
+    writer.SetInputData(polydata)
     writer.SetFileName("%s" % name)
     writer.Write()
 
 
-def write_vtk(pd, filename):
+def write_vtk(polydata, filename):
     writer = vtk.vtkDataSetWriter()
-    writer.SetInputData(pd)
+    writer.SetInputData(polydata)
     writer.SetFileName(filename)
     writer.Write()
 
 
-def add_arr_to_pd(pd, data_array, name):
+def add_arr_to_pd(polydata, data_array, name):
     vtk_da = numpy_support.numpy_to_vtk(data_array)
     vtk_da.SetName(name)
-    pd.GetPointData().AddArray(vtk_da)
+    polydata.GetPointData().AddArray(vtk_da)
 
 
-def normals(pd):
+def normals(polydata):
     normals = vtk.vtkPolyDataNormals()
     normals.SplittingOff()
-    normals.SetInputData(pd)
+    normals.SetInputData(polydata)
     normals.ComputePointNormalsOn()
     normals.Update()
     return normals.GetOutput()
 
 
-def get_volume(pd):
+def get_volume(polydata):
     mp = vtk.vtkMassProperties()
-    mp.SetInputData(pd)
+    mp.SetInputData(polydata)
     mp.Update()
     return mp.GetVolume()
 
 
-def get_surface_area(pd):
+def get_surface_area(polydata):
     mp = vtk.vtkMassProperties()
-    mp.SetInputData(pd)
+    mp.SetInputData(polydata)
     mp.Update()
     return mp.GetSurfaceArea()
 
@@ -232,8 +232,8 @@ def folder_to_curv_arr(input_folder, sigma=3):
     return pd_to_curv_arr(polydata)
 
 
-def pd_to_curv_arr(pd):
-    polydata = normals(pd)
+def pd_to_curv_arr(polydata):
+    polydata = normals(polydata)
 
     mcFilter = vtk.vtkCurvatures()
     mcFilter.SetCurvatureTypeToMean()

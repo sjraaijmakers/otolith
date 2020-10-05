@@ -13,7 +13,7 @@ if __name__ == "__main__":
     sub_dirs = [x[0] for x in os.walk(input_folder)]
     sub_dirs = sub_dirs[1:]
 
-    for sub_dir in sub_dirs[0:2]:
+    for sub_dir in sub_dirs[2:]:
         print(sub_dir)
 
         stack_to_mesh(sub_dir, output_folder)

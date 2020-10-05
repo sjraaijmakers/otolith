@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 
-def stack_to_mesh(input_folder, mesh_folder, sigma=5, target_reduction=0.5**3,
+def stack_to_mesh(input_folder, mesh_folder, sigma=3, target_reduction=0.5**3,
               smoothing_iterations=40):
     basename = os.path.basename(input_folder)
     print(basename)
@@ -21,9 +21,10 @@ def stack_to_mesh(input_folder, mesh_folder, sigma=5, target_reduction=0.5**3,
         imgdata = vtk_functions.pad_imgdata(imgdata, padding)
         imgdata = vtk_functions.gauss_imgdata(imgdata, sigma=sigma)
         print("Applied Gaussian smoothing with s=%s" % sigma)
+        basename = basename + "_g_%s" % sigma
 
-    polydata = vtk_functions.imgdata_to_pd(imgdata)
     ply_file_name =  "%s/%s.ply" % (mesh_folder, basename)
+    polydata = vtk_functions.imgdata_to_pd(imgdata)
     vtk_functions.write_ply(polydata, ply_file_name)
 
     # MESHLAB
@@ -77,4 +78,4 @@ if __name__ == "__main__":
     input_folder = "/home/steven/scriptie/inputs/edited_scans/otoI48"
     mesh_folder = "/home/steven/scriptie/inputs/meshes"
 
-    procedure(input_folder, mesh_folder)
+    stack_to_mesh(input_folder, mesh_folder, sigma=3)
