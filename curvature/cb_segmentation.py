@@ -9,79 +9,39 @@ from sklearn.cluster import DBSCAN
 from vtk.util import numpy_support
 import pandas as pd
 import os
-from scipy.sparse import dok_matrix
-
-
-# Get all direct neighbors of vertex_id
-def get_connect_vertices(polydata, vertex_id):
-    connectedVertices = []
-
-    cellIdList = vtk.vtkIdList()
-    polydata.GetPointCells(vertex_id, cellIdList)
-
-    for i in range(cellIdList.GetNumberOfIds()):
-        pointIdList = vtk.vtkIdList()
-        polydata.GetCellPoints(cellIdList.GetId(i), pointIdList)
-
-        if pointIdList.GetId(0) != vertex_id:
-            connectedVertices.append(pointIdList.GetId(0))
-        else:
-            connectedVertices.append(pointIdList.GetId(1))
-
-    return connectedVertices
-
-
-# Get (sparse) distance matrix of polydata
-def get_distance_matrix(polydata):
-    N = polydata.GetPoints().GetNumberOfPoints()
-    d = dok_matrix((N, N))
-
-    for i in range(N):
-        neighbors = get_connect_vertices(polydata, i)
-        d[i, neighbors] = 1
-    return d
 
 
 class CurvatureSegmentation():
     def __init__(self, pd):
         self.polydata = pd
-
         self.set_normals()
         self.set_mean_curvature()
 
         # Params
-        self.min_H_value = 0
-        self.min_cluster_count = 40
-        self.min_cr_ring = 500
+        self.min_H_value = 0.001
+        self.min_cluster_count = 50
+        self.min_cr_ring = 969
         self.cluster = True
-        self.eps_2 = 10
+        self.eps_2 = 8
 
     def set_normals(self):
-        ns = vtk_functions.normals(self.polydata)
-        self.polydata = ns
+        self.polydata = vtk_functions.normals(self.polydata)
 
     def set_mean_curvature(self):
-        curvatureFilter = vtk.vtkCurvatures()
-        curvatureFilter.SetCurvatureTypeToMean()
-        curvatureFilter.SetInputData(self.polydata)
-        curvatureFilter.Update()
-        self.polydata = curvatureFilter.GetOutput()
+        self.polydata = vtk_functions.mean_curvature(self.polydata)
 
-    def get_cluster_labels(self, points, eps):
+    def get_cluster_labels(self, X, eps):
         model = DBSCAN(eps=eps)
-        model.fit_predict(points)
+        model.fit_predict(X)
         return model.labels_
 
     def threshold_pd(self):
-        # threshold on mean curvature value
         threshold = vtk.vtkThreshold()
         threshold.SetInputData(self.polydata)
         threshold.ThresholdByUpper(self.min_H_value)
         threshold.Update()
-
         polydata = threshold.GetOutput()
 
-        # threshold on normal vector
         normals = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Normals"))))
 
         c = vtk.vtkLongLongArray()
@@ -106,40 +66,44 @@ class CurvatureSegmentation():
         return threshold.GetOutput()
 
 
-    def run(self):
+    def run(self, verbose=True):
+        # threshold on mean curvature and normal vector
         polydata = self.threshold_pd()
 
-        coords = polydata.GetPoints()
+        # transform pd to df to apply clustering
 
-        # PD to
         df = pd.DataFrame()
-        df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(coords.GetData())))
+        df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())))
 
         if self.cluster:
-            d = get_distance_matrix(polydata)
-            print("Got distance matrix (%sx%s)" % (d.shape[0], d.shape[1]))
+            d = vtk_functions.get_distance_matrix(polydata)
 
-            model = DBSCAN(eps=1, min_samples=5, metric="precomputed")
+            if verbose:
+                print("Got distance matrix (%sx%s)" % (d.shape[0], d.shape[1]))
+
+            # Cluster on distance in mesh
+            model = DBSCAN(eps=1, min_samples=1, metric="precomputed")
             model.fit(d)
             df["cluster"] = model.labels_
 
-            # remove noise cluster
             df = df[df["cluster"] != -1]
-
             df = df.groupby("cluster").filter(lambda x: x["cluster"].count() > self.min_cluster_count)
 
+            # Cluster on euclidean distance (ring)
             cluster_labels2 = self.get_cluster_labels(df["coord"].to_list(), self.eps_2)
             df["cluster_ring"] = cluster_labels2
 
-            print(df.groupby("cluster_ring").size().sort_values(ascending=False))
+            if verbose:
+                print(df.groupby("cluster_ring").size().sort_values(ascending=False))
 
             df = df.groupby("cluster_ring").filter(lambda x: x["cluster"].count() > self.min_cr_ring)
 
             new_cluster_labels, _ = pd.factorize(df["cluster"])
             df["cluster"] = new_cluster_labels
 
-            print("Clustered DF")
-            print(df.groupby("cluster").size().sort_values(ascending=False))
+            if verbose:
+                print("Clustered DF")
+                print(df.groupby("cluster").size().sort_values(ascending=False))
 
             cluster_labels = vtk.vtkLongLongArray()
             cluster_labels.SetName("Cluster")
@@ -163,7 +127,8 @@ class CurvatureSegmentation():
         vertexGlyphFilter.AddInputData(points_poly)
         vertexGlyphFilter.Update()
 
-        print("Created polydata of cluster points")
+        if verbose:
+            print("Created polydata of cluster points")
 
         return vertexGlyphFilter.GetOutput()
 

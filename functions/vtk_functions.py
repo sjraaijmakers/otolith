@@ -8,6 +8,7 @@ import os
 import general
 import shutil
 import cv2
+from scipy.sparse import dok_matrix
 
 
 """ IMGDATA """
@@ -115,6 +116,14 @@ def normals(polydata):
     return normals.GetOutput()
 
 
+def mean_curvature(polydata):
+    curvatureFilter = vtk.vtkCurvatures()
+    curvatureFilter.SetCurvatureTypeToMean()
+    curvatureFilter.SetInputData(polydata)
+    curvatureFilter.Update()
+    return curvatureFilter.GetOutput()
+
+
 def get_volume(polydata):
     mp = vtk.vtkMassProperties()
     mp.SetInputData(polydata)
@@ -127,6 +136,34 @@ def get_surface_area(polydata):
     mp.SetInputData(polydata)
     mp.Update()
     return mp.GetSurfaceArea()
+
+
+def get_connect_vertices(polydata, vertex_id):
+    connectedVertices = []
+
+    cellIdList = vtk.vtkIdList()
+    polydata.GetPointCells(vertex_id, cellIdList)
+
+    for i in range(cellIdList.GetNumberOfIds()):
+        pointIdList = vtk.vtkIdList()
+        polydata.GetCellPoints(cellIdList.GetId(i), pointIdList)
+
+        if pointIdList.GetId(0) != vertex_id:
+            connectedVertices.append(pointIdList.GetId(0))
+        else:
+            connectedVertices.append(pointIdList.GetId(1))
+
+    return connectedVertices
+
+
+def get_distance_matrix(polydata):
+    N = polydata.GetPoints().GetNumberOfPoints()
+    d = dok_matrix((N, N))
+
+    for i in range(N):
+        neighbors = get_connect_vertices(polydata, i)
+        d[i, neighbors] = 1
+    return d
 
 
 """ CONVERSIONS """
