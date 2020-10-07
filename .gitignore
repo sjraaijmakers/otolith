@@ -8,3 +8,5 @@ __pycache__/
 analysis/
 .vscode/
 .ipynb_checkpoints
+.*
+!/.gitignore
