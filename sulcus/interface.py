@@ -115,36 +115,12 @@ class Interface:
         self.add_keybinds()
         self.add_menu()
 
-        # """ DEBUG """
+        # # """ DEBUG """
 
-        oto = Otolith()
-        oto.read_from_folder("/home/steven/scriptie/inputs/testset/otoF83")
-        oto.name = "otoF83_debug"
-        self.set_otolith(oto)
-        self.img_load()
-
-        # otolith = Otolith()
-        # slices = open_pickle("/home/steven/Documents/school/scriptie/pickle_files/sphere_pickle.pkl")
-        # otolith.set_slices(slices)
-        # otolith.name = "SPHERE"
-        # self.set_otolith(otolith)
-        # self.img_load()
-
-        # otolith = Otolith()
-        # # slices = np.zeros((100, 100, 100))
-        # slices = open_pickle("/home/steven/Documents/school/scriptie/pickle_files/otoI48_pickle.pkl")
-        # otolith.set_slices(slices)
-        # otolith.name = "otoI48_DEBUG"
-        # self.set_otolith(otolith)
-        # self.img_load()
-
-        # # BIG (OTOF73)
-        # otolith = Otolith()
-        # otolith.set_slices(open_pickle("/home/steven/Documents/school/scriptie/pickle_files/otoF73_pickle.pkl"))
-        # otolith.name = "otoF73_DEBUG"
-
-
-        # self.set_otolith(otolith)
+        # oto = Otolith()
+        # oto.read_from_folder("/home/steven/scriptie/inputs/testset/otoF83")
+        # oto.name = "otoF83_debug"
+        # self.set_otolith(oto)
         # self.img_load()
 
     def add_keybinds(self):
@@ -237,16 +213,10 @@ class Interface:
         menu_measure_surface.add_command(label="Surface area of otolith",
                                          command=lambda: self.window_measure("Surface area of otolith",
                                                  lambda: self.measure_surface_func(0)))
-        menu_measure_surface.add_command(label="Proximal surface area of otolith",
-                                         command=lambda: self.window_measure("Proximal surface area of otolith",
-                                                 lambda: self.measure_surface_func(0, 1)))
         menu_measure_surface.add_separator()
         menu_measure_surface.add_command(label="Surface area of sulcus",
                                          command=lambda: self.window_measure("Surface area of sulcus",
                                                  lambda: self.measure_surface_func(1)))
-        menu_measure_surface.add_command(label="Proximal surface area of sulcus",
-                                         command=lambda: self.window_measure("Proximal surface area of sulcus",
-                                                 lambda: self.measure_surface_func(1, -1)))
         menu_measure.add_cascade(label="Surface area...", menu=menu_measure_surface)
 
         # Add menu's to menubar
@@ -754,19 +724,13 @@ class Interface:
         self.open_window.destroy()
         self.window_info("Measurements", body, copy=vol)
 
-    def measure_surface_func(self, part, pos=0):
+    def measure_surface_func(self, part):
         s = 0
 
         if part == 0:
-            if pos == 0:
-                s = self.otolith.get_surface_area_otolith()
-            elif pos == 1:
-                s = self.otolith.get_proximal_surface_otolith()
+            s = self.otolith.get_surface_area_otolith()
         elif part == 1:
-            if pos == 0:
-                s = self.otolith.get_surface_area_sulcus()
-            elif pos == -1:
-                s = self.otolith.get_proximal_surface_sulcus()
+            s = self.otolith.get_surface_area_sulcus()
 
         part_string = ""
         if part == 0:
@@ -774,20 +738,12 @@ class Interface:
         elif part == 1:
             part_string = "sulucs"
 
-        side_string = ""
-        if pos == 1:
-            side_string = "Proximal"
-        elif pos == 0:
-            side_string = ""
-        elif pos == -1:
-            side_string = "Distal"
-
         surface = s * (self.voxel_resolution.get()**2)
 
         body = "Surface area (voxels): %s\n" % s
         body += "Voxel resolution: %s\n" % self.voxel_resolution.get()
-        body += "%s surface area of %s: %s μm^2" % \
-                (side_string, part_string, surface)
+        body += "surface area of %s: %s μm^2" % \
+                (part_string, surface)
 
         self.open_window.destroy()
         self.window_info("Measurements", body, copy=surface)
