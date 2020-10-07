@@ -34,7 +34,6 @@ def get_transformation_matrix(x, y, z):
     return uvw_i
 
 
-# transform bounds to extent
 def bounds_to_extent(bounds, origin, spacing):
     x1, x2, y1, y2, z1, z2 = bounds
 

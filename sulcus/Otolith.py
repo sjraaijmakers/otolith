@@ -21,15 +21,11 @@ from itertools import chain
 
 """
     Otolith class:
-    NOTE: origin of images is top left, origin of plots is botom left
 
     TODO:
-        - create cmakelists kind of build??
-        - general.top_edge to list of points instead of seperate coordinates?
-        - verify result of measurements!!!!
-            - volume: check
-            - surface: check (almost, still need proximal)
-        - merge get/detect peaks!
+        - create cmakelists kind of build?
+        - general.top_edge: make list of points instead of coordinates
+        - merge get/detect peaks?
 """
 
 
@@ -166,35 +162,11 @@ class Otolith():
 
         return [(p1x, p1y), (p2x, p2y)]
 
-    def detect_peaks_matlab(self, top_edge_xs, top_edge_ys, top_edge_ys_i):
-        max_tab, min_tab = peakdet(top_edge_ys_i, self.delta)
-
-        peaks = []
-        valleys = []
-
-        if np.any(max_tab):
-            max_x_indices = max_tab[:, 0].astype(int)
-            peaks = list(zip(top_edge_xs[max_x_indices],
-                             top_edge_ys[max_x_indices]))
-
-        if np.any(min_tab):
-            min_x_indices = min_tab[:, 0].astype(int)
-            valleys = list(zip(top_edge_xs[min_x_indices], top_edge_ys[min_x_indices]))
-
-        return peaks, []
-
     def detect_peaks_scipy(self, top_edge_xs, top_edge_ys, top_edge_ys_i):
         peaks, _ = signal.find_peaks(top_edge_ys_i, width=10, distance=10,
                                      prominence=1)
         peaks = list(zip(top_edge_xs[peaks], top_edge_ys[peaks]))
         return peaks, []
-
-    # def detect_peaks_pu(self, top_edge_xs, top_edge_ys, top_edge_ys_i):
-    #     indices = pu.indexes(top_edge_ys_i, thres=0.8, min_dist=10)
-
-    #     peaks = list(zip(top_edge_xs[indices], top_edge_ys[indices]))
-
-    #     return peaks, []
 
     """ PEAK DETECTION """
     # Find peaks desribing the sulcus in slice z
@@ -376,19 +348,6 @@ class Otolith():
             edge_y = general.get_y_val(p_x, top_edge_xs, top_edge_ys)
             img_sul[p_y + 1: edge_y, p_x] = 1
 
-        # p = np.pad(img + img_sul*255, [(20, 0), (0, 0)])
-        # plt.imshow(p, cmap="gray")
-        # line = general.get_line(peaks_new)
-        # line_xs, line_ys = zip(*line)
-        # plt.plot(line_xs, np.array(line_ys) + 20, ".", markersize=3, c="orange")
-        # peaks_new_xs, peaks_new_ys = zip(*peaks_new)
-        # plt.plot(peaks_new_xs, np.array(peaks_new_ys) + 20, "o", markersize=10, c="red")
-        # # plt.plot(points_highest[0], points_highest[1], "o", markersize=10, c="blue")
-        # plt.xlim(peaks_new[0][0] - 50, peaks_new[-1][0] + 50)
-
-
-        # plt.show()
-
         return img_sul
 
     # Convert known peaks to volume describing the sulcus
@@ -465,22 +424,6 @@ class Otolith():
 
             return vtk_functions.get_surface_area(polydata)
         return 0
-
-    # # TODO: THIS IS NOT RIGHT YET
-    # def get_proximal_surface_sulcus(self):
-    #     for z in range(self.slices.shape[2]):
-    #         img = self.slices[:, :, z]
-
-    #         sulcus_2d = self.get_sulcus_2d(z)
-
-    #         if not np.any(img):
-    #             line_length = 0
-    #         else:
-    #             edge_xs, edge_ys = general.get_top_edge(img, True)
-    #             edge = list(zip(edge_xs, edge_ys))
-    #             line_length = general.get_line_length(edge)
-
-    #         yield z, line_length
 
     def get_dims(self):
         return (self.slices.shape[1], self.slices.shape[0],
