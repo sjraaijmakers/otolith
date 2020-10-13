@@ -7,8 +7,10 @@ import vtk
 import seaborn as sns
 from sklearn.cluster import DBSCAN
 from vtk.util import numpy_support
+from scipy.sparse.csgraph import connected_components
 import pandas as pd
 import os
+import numpy as np
 
 
 class CurvatureSegmentation():
@@ -18,11 +20,11 @@ class CurvatureSegmentation():
         self.set_mean_curvature()
 
         # Params
-        self.min_H_value = 0.001
+        self.min_H_value = 0
         self.min_cluster_count = 50
-        self.min_cr_ring = 969
+        self.min_cr_ring = 1600
         self.cluster = True
-        self.eps_2 = 8
+        self.eps_2 = 9
 
     def set_normals(self):
         self.polydata = vtk_functions.normals(self.polydata)
@@ -35,14 +37,16 @@ class CurvatureSegmentation():
         model.fit_predict(X)
         return model.labels_
 
-    def threshold_pd(self):
+    def threshold_filter_pd(self):
         threshold = vtk.vtkThreshold()
         threshold.SetInputData(self.polydata)
         threshold.ThresholdByUpper(self.min_H_value)
         threshold.Update()
         polydata = threshold.GetOutput()
 
-        normals = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Normals"))))
+        normals = list(map(tuple,
+                        numpy_support.vtk_to_numpy(
+                               polydata.GetPointData().GetArray("Normals"))))
 
         c = vtk.vtkLongLongArray()
         c.SetName("c")
@@ -63,74 +67,87 @@ class CurvatureSegmentation():
         threshold.SetInputArrayToProcess(0, 0, 0, 0, "c")
         threshold.ThresholdByUpper(1)
         threshold.Update()
-        return threshold.GetOutput()
 
+        polydata = threshold.GetOutput()
+        polydata.GetPointData().RemoveArray("c")
+        return polydata
 
     def run(self, verbose=True):
         # threshold on mean curvature and normal vector
-        polydata = self.threshold_pd()
+        polydata = self.threshold_filter_pd()
 
-        # transform pd to df to apply clustering
+        vtk_functions.write_vtk(polydata, "ewa.vtk")
 
+
+        # transform pd to df to apply operations
         df = pd.DataFrame()
         df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())))
 
-        if self.cluster:
-            d = vtk_functions.get_distance_matrix(polydata)
+        d = vtk_functions.get_distance_matrix(polydata)
 
-            if verbose:
-                print("Got distance matrix (%sx%s)" % (d.shape[0], d.shape[1]))
-
-            # Cluster on distance in mesh
-            model = DBSCAN(eps=1, min_samples=1, metric="precomputed")
-            model.fit(d)
-            df["cluster"] = model.labels_
-
-            df = df[df["cluster"] != -1]
-            df = df.groupby("cluster").filter(lambda x: x["cluster"].count() > self.min_cluster_count)
-
-            # Cluster on euclidean distance (ring)
-            cluster_labels2 = self.get_cluster_labels(df["coord"].to_list(), self.eps_2)
-            df["cluster_ring"] = cluster_labels2
-
-            if verbose:
-                print(df.groupby("cluster_ring").size().sort_values(ascending=False))
-
-            df = df.groupby("cluster_ring").filter(lambda x: x["cluster"].count() > self.min_cr_ring)
-
-            new_cluster_labels, _ = pd.factorize(df["cluster"])
-            df["cluster"] = new_cluster_labels
-
-            if verbose:
-                print("Clustered DF")
-                print(df.groupby("cluster").size().sort_values(ascending=False))
-
-            cluster_labels = vtk.vtkLongLongArray()
-            cluster_labels.SetName("Cluster")
-
-        # covert df to vtkpoints
-        vtk_points = vtk.vtkPoints()
-
-        for _, row in df.iterrows():
-            vtk_points.InsertNextPoint(row["coord"])
-
-            if self.cluster:
-                cluster_labels.InsertNextTuple1(row["cluster"])
-
-        points_poly = vtk.vtkPolyData()
-        points_poly.SetPoints(vtk_points)
-
-        if self.cluster:
-            points_poly.GetPointData().AddArray(cluster_labels)
-
-        vertexGlyphFilter = vtk.vtkVertexGlyphFilter()
-        vertexGlyphFilter.AddInputData(points_poly)
-        vertexGlyphFilter.Update()
+        print(d)
 
         if verbose:
-            print("Created polydata of cluster points")
+            print("Got distance matrix (%sx%s)" % (d.shape[0], d.shape[1]))
 
-        return vertexGlyphFilter.GetOutput()
+        _, labels = connected_components(csgraph=d, directed=False, return_labels=True)
+        df["cluster"] = labels
+
+        # dont consider clusters with -1
+        df["approved"] = df.apply(lambda x: 0 if x['cluster'] == -1 else 1, axis=1)
+
+        # all cluster with size below threshold are not approved
+        g = df.groupby('cluster')['cluster'].transform("size")
+        df.loc[g <= self.min_cluster_count, 'approved'] = 0
+
+        # ring cluster 2
+        cluster_labels2 = self.get_cluster_labels(df["coord"].to_list(), self.eps_2)
+        df["cluster_ring"] = cluster_labels2
+
+        print(df.groupby("cluster_ring").size().sort_values(ascending=False))
+
+        g = df.groupby('cluster_ring')['cluster_ring'].transform("size")
+        df.loc[(g <= self.min_cr_ring) | (df["cluster_ring"] == 28), 'approved'] = 0
+
+        # remap values
+        df['cluster_new'] = df.apply(lambda x: x["cluster"] if x['approved'] == 1 else -1, axis=1)
+
+        d = list(df["cluster_new"].unique())
+        d.remove(-1)
+
+        new_map = {}
+
+        for i in range(len(d)):
+            new_map[d[i]] = i
+
+        new_map[-1] = -1
+
+        df["cluster_new"] = df["cluster_new"].map(new_map)
+
+        print(df.groupby("cluster_new").size().sort_values(ascending=False))
+
+        cluster_labels = vtk.vtkLongLongArray()
+        cluster_labels.SetName("Cluster")
+
+        for _, row in df.iterrows():
+            if row["approved"] == 1:
+                cluster_labels.InsertNextTuple1(row["cluster_new"])
+            else:
+                cluster_labels.InsertNextTuple1(-1)
+
+        polydata.GetPointData().AddArray(cluster_labels)
+
+        threshold = vtk.vtkThreshold()
+        threshold.SetInputData(polydata)
+        threshold.SetInputArrayToProcess(0, 0, 0, 0, "Cluster")
+        threshold.ThresholdByUpper(0)
+        threshold.Update()
+
+        polydata = threshold.GetOutput()
+        polydata.GetPointData().RemoveArray("Mean_Curvature")
+        polydata.GetPointData().RemoveArray("Normals")
+
+        return polydata
 
 
 if __name__ == "__main__":
@@ -144,6 +161,6 @@ if __name__ == "__main__":
     cps = cs.run()
 
     basename = os.path.splitext(os.path.basename(input_file))[0]
-    output_file = "%s/%s_clusters.vtk" % (output_folder, basename)
+    output_file = "%s/%s_clusters_TOST.vtk" % (output_folder, basename)
     vtk_functions.write_vtk(cps, output_file)
     print("Wrote polydata to %s" % output_file)

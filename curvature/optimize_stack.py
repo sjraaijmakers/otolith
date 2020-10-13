@@ -8,8 +8,9 @@ import numpy as np
 import os
 
 
-def stack_to_mesh(input_folder, mesh_folder, sigma=3, target_reduction=0.5**3,
-              smoothing_iterations=40):
+def improve_mesh(pd, target_reduction=0.5**3, smoothing_iterations=40)
+
+def stack_to_mesh(input_folder, mesh_folder, sigma=3, ):
     basename = os.path.basename(input_folder)
     print(basename)
 
@@ -70,7 +71,7 @@ def stack_to_mesh(input_folder, mesh_folder, sigma=3, target_reduction=0.5**3,
 
     mlx.smooth.taubin(simplified_mesh, iterations=smoothing_iterations)
 
-    simplified_mesh.run_script() # Run the script
+    simplified_mesh.run_script()
 
 
 if __name__ == "__main__":
