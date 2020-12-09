@@ -1,3 +1,5 @@
+# Find H error for sphere polydata
+
 import sys
 sys.path.insert(1, '../functions')
 
@@ -14,6 +16,7 @@ if __name__ == "__main__":
     polydata = vtk_functions.read_ply("/home/steven/scriptie/inputs/meshes/sphere_r_100_p_20_MLX.ply")
     polydata = vtk_functions.normals(polydata)
 
+    # Use VTK to get H
     mcFilter = vtk.vtkCurvatures()
     mcFilter.SetCurvatureTypeToMean()
     mcFilter.SetInputData(polydata)
@@ -27,10 +30,11 @@ if __name__ == "__main__":
         p = points.GetPoint(i)
         val = vals.GetComponent(i, 0)
 
+        # Compare VTK H with analytic H to derive error
         mc_error = abs(val - 1/r) / (1/r) * 100
         mc_errors.append(mc_error)
 
-    # add mc_erros to data of vtk object
+    # Add H error as array to vtk object
     vtk_da = numpy_support.numpy_to_vtk(mc_errors)
     vtk_da.SetName("mc_error")
 

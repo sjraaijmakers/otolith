@@ -30,7 +30,7 @@ def remove_bg(input, t_val=122, sigma=1):
     mask = cv2.drawContours(mask, filtered_cnts, -1, 255, cv2.FILLED)
 
     kernel_size = 5
-    kernel  = np.ones((kernel_size,kernel_size), np.uint8)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=1)
     # mask = cv2.erode(mask, kernel, iterations=1)
     # mask = cv2.GaussianBlur(mask, (0,0), sigma)

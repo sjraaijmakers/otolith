@@ -1,3 +1,5 @@
+# Apply several filters to PD to optimize for H derivation
+
 import sys
 sys.path.insert(1, '../functions')
 
@@ -8,11 +10,8 @@ import numpy as np
 import os
 
 
-def improve_mesh(pd, target_reduction=0.5**3, smoothing_iterations=40)
-
-def stack_to_mesh(input_folder, mesh_folder, sigma=3, ):
+def stack_to_mesh(input_folder, mesh_folder, sigma=3):
     basename = os.path.basename(input_folder)
-    print(basename)
 
     # VTK
     imgdata = vtk_functions.folder_to_imgdata(input_folder)
@@ -36,6 +35,8 @@ def stack_to_mesh(input_folder, mesh_folder, sigma=3, ):
     target_faces = int(np.round(mesh_topology["face_num"] * target_reduction))
 
     simplified_mesh = mlx.FilterScript(file_in=input_mesh, file_out=output_mesh)
+
+    # Apply decimation
 
     t_faces = int(np.round(mesh_topology["face_num"] * 0.5 ** 1))
     mlx.remesh.simplify(simplified_mesh,
@@ -69,6 +70,7 @@ def stack_to_mesh(input_folder, mesh_folder, sigma=3, ):
                             preserve_topology=False,
                             preserve_boundary=True)
 
+    # Apply Taubin smoothing
     mlx.smooth.taubin(simplified_mesh, iterations=smoothing_iterations)
 
     simplified_mesh.run_script()

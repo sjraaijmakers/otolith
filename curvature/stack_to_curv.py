@@ -1,3 +1,5 @@
+# Derive H values for image stack
+
 import sys
 sys.path.insert(1, '../functions')
 

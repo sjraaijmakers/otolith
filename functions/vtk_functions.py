@@ -1,4 +1,4 @@
-""" wrapper for vtk functions """
+# Wrapper for some vtk functions in python
 
 
 import vtk
@@ -11,7 +11,7 @@ import cv2
 from scipy.sparse import dok_matrix
 
 
-""" IMGDATA """
+# IMGDATA related
 
 
 def gauss_imgdata(imgdata, sigma=3):
@@ -77,7 +77,7 @@ def extract_voi(imgdata, xi, xf, yi, yf, zi, zf, padding=0):
     return voi.GetOutput()
 
 
-""" POLYDATA """
+# PD related
 
 
 def read_ply(filename):
@@ -86,7 +86,7 @@ def read_ply(filename):
     reader.Update()
     return reader.GetOutput()
 
-# Write vtk polydata to .ply file
+
 def write_ply(polydata, name):
     writer = vtk.vtkPLYWriter()
     writer.SetInputData(polydata)
@@ -166,7 +166,7 @@ def get_distance_matrix(polydata):
     return d
 
 
-""" CONVERSIONS """
+# CONVERSIONS
 
 
 def imgdata_to_arr(imgdata):
@@ -179,23 +179,6 @@ def imgdata_to_arr(imgdata):
     numpy_data = numpy_data.transpose(1, 2, 0)
     # numpy_data = np.flip(numpy_data, axis=1)
     return numpy_data
-
-
-def arr_to_imgseq(arr, folder, img_format="tif", verbose=False):
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-    # delete folder if it already exists
-    else:
-        shutil.rmtree(folder)
-        os.makedirs(folder)
-
-    for i in range(arr.shape[2]):
-        name = folder + "/img_" + str(f'{i:04}' + "." + img_format)
-        if verbose:
-            print("Writing " + name + "...")
-        cv2.imwrite(name, arr[:, :, i])
-
-    print("Finished writing %s slices to %s" % (arr.shape[2], folder))
 
 
 def arr_to_imgdata(array):
@@ -213,6 +196,11 @@ def arr_to_imgdata(array):
     return imgdata
 
 
+def arr_to_pd(arr):
+    imgdata = arr_to_imgdata(arr)
+    return imgdata_to_pd(imgdata)
+
+
 def imgdata_to_pd(imgdata):
     sran = imgdata.GetScalarRange()
     contourFilter = vtk.vtkContourFilter()
@@ -222,12 +210,7 @@ def imgdata_to_pd(imgdata):
     return contourFilter.GetOutput()
 
 
-def arr_to_pd(arr):
-    imgdata = arr_to_imgdata(arr)
-    return imgdata_to_pd(imgdata)
-
-
-# Read folder to imagedata
+# Convert folder to imagedata
 def folder_to_imgdata(input_folder, verbose=False):
     z = general.count_files_in_folder(input_folder, "tif")
 
@@ -279,6 +262,6 @@ def pd_to_curv_arr(polydata):
 
     polydata = mcFilter.GetOutput()
 
-    curv_arr =  numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))
+    curv_arr = numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))
 
     return curv_arr

@@ -383,36 +383,42 @@ class Otolith():
         return polydata
 
     """ MEASUREMENTS """
-    def get_nzp_otolith(self):
-        for z in range(self.slices.shape[2]):
-            slice_nzp = general.count_non_empty_pixels(self.slices[:, :, z])
-            yield z, slice_nzp
+    # def get_nzp_otolith(self):
+    #     for z in range(self.slices.shape[2]):
+    #         slice_nzp = general.count_non_empty_pixels(self.slices[:, :, z])
+    #         yield z, slice_nzp
 
-    def get_nzp_sulcus(self):
-        first_peakful_slice = min(list(self.peaks.keys()))
-        last_peakful_slice = max(list(self.peaks.keys()))
+    # def get_nzp_sulcus(self):
+    #     first_peakful_slice = min(list(self.peaks.keys()))
+    #     last_peakful_slice = max(list(self.peaks.keys()))
 
-        for z in range(first_peakful_slice, last_peakful_slice + 1):
-            sulcus_2d = self.get_sulcus_2d(z)
-            slice_nzp = general.count_non_empty_pixels(sulcus_2d)
-            yield z, slice_nzp
+    #     for z in range(first_peakful_slice, last_peakful_slice + 1):
+    #         sulcus_2d = self.get_sulcus_2d(z)
+    #         slice_nzp = general.count_non_empty_pixels(sulcus_2d)
+    #         yield z, slice_nzp
 
-    def get_proximal_surface_otolith(self):
-        for z in range(self.slices.shape[2]):
-            img = self.slices[:, :, z]
+    # def get_proximal_surface_otolith(self):
+    #     for z in range(self.slices.shape[2]):
+    #         img = self.slices[:, :, z]
 
-            if not np.any(img):
-                line_length = 0
-            else:
-                edge_xs, edge_ys = general.get_top_edge(img)
-                edge = list(zip(edge_xs, edge_ys))
-                line_length = general.get_line_length(edge)
+    #         if not np.any(img):
+    #             line_length = 0
+    #         else:
+    #             edge_xs, edge_ys = general.get_top_edge(img)
+    #             edge = list(zip(edge_xs, edge_ys))
+    #             line_length = general.get_line_length(edge)
 
-            yield z, line_length
+    #         yield z, line_length
 
-    def get_volume_otolith_vtk(self):
+    def get_volume_otolith(self):
         polydata = self.get_isosurface_otolith()
         return vtk_functions.get_volume(polydata)
+
+    def get_volume_sulcus(self):
+        if self.peaks:
+            polydata = self.get_isosurface_sulcus()
+            return vtk_functions.get_volume(polydata)
+        return 0
 
     def get_surface_area_otolith(self):
         polydata = self.get_isosurface_otolith()
@@ -421,7 +427,6 @@ class Otolith():
     def get_surface_area_sulcus(self):
         if self.peaks:
             polydata = self.get_isosurface_sulcus()
-
             return vtk_functions.get_surface_area(polydata)
         return 0
 

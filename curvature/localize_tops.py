@@ -1,3 +1,5 @@
+# Localizes tops of protuberance in otolith mesh
+
 import sys
 sys.path.insert(1, '../functions')
 
@@ -19,10 +21,10 @@ class CurvatureSegmentation():
         self.set_normals()
         self.set_mean_curvature()
 
-        # Params
+        # Params for filtering
         self.min_H_value = 0
-        self.min_cluster_count = 50
-        self.min_cr_ring = 1600
+        self.min_cluster_count = 50 # N_min
+        self.min_cr_ring = 100
         self.cluster = True
         self.eps_2 = 9
 
@@ -73,30 +75,27 @@ class CurvatureSegmentation():
         return polydata
 
     def run(self, verbose=True):
-        # threshold on mean curvature and normal vector
+        # Filter pd on H and n
         polydata = self.threshold_filter_pd()
 
         vtk_functions.write_vtk(polydata, "ewa.vtk")
 
-
-        # transform pd to df to apply operations
-        df = pd.DataFrame()
-        df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())))
-
+        # Create distance matrix for polydata
         d = vtk_functions.get_distance_matrix(polydata)
-
-        print(d)
 
         if verbose:
             print("Got distance matrix (%sx%s)" % (d.shape[0], d.shape[1]))
 
+        # Transform polydata to dataframe to apply operations
+        df = pd.DataFrame()
+        df["coord"] = list(map(tuple, numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())))
         _, labels = connected_components(csgraph=d, directed=False, return_labels=True)
         df["cluster"] = labels
 
-        # dont consider clusters with -1
+        # Remove cluster == -1 (noise cluster)
         df["approved"] = df.apply(lambda x: 0 if x['cluster'] == -1 else 1, axis=1)
 
-        # all cluster with size below threshold are not approved
+        # Remove clusters where size < N_min
         g = df.groupby('cluster')['cluster'].transform("size")
         df.loc[g <= self.min_cluster_count, 'approved'] = 0
 
@@ -104,12 +103,13 @@ class CurvatureSegmentation():
         cluster_labels2 = self.get_cluster_labels(df["coord"].to_list(), self.eps_2)
         df["cluster_ring"] = cluster_labels2
 
-        print(df.groupby("cluster_ring").size().sort_values(ascending=False))
+        if verbose:
+            print(df.groupby("cluster_ring").size().sort_values(ascending=False))
 
         g = df.groupby('cluster_ring')['cluster_ring'].transform("size")
-        df.loc[(g <= self.min_cr_ring) | (df["cluster_ring"] == 28), 'approved'] = 0
+        df.loc[g <= self.min_cr_ring), 'approved'] = 0
 
-        # remap values
+        # Remap values
         df['cluster_new'] = df.apply(lambda x: x["cluster"] if x['approved'] == 1 else -1, axis=1)
 
         d = list(df["cluster_new"].unique())
@@ -124,7 +124,8 @@ class CurvatureSegmentation():
 
         df["cluster_new"] = df["cluster_new"].map(new_map)
 
-        print(df.groupby("cluster_new").size().sort_values(ascending=False))
+        if verbose:
+            print(df.groupby("cluster_new").size().sort_values(ascending=False))
 
         cluster_labels = vtk.vtkLongLongArray()
         cluster_labels.SetName("Cluster")

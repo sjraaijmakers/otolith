@@ -1,3 +1,5 @@
+# General functions
+
 import numpy as np
 import os
 import cv2
@@ -23,6 +25,7 @@ def get_file_prefix(folder, z_amount):
     return prefix[:-blocks]
 
 
+# Generate sphere 3d np array
 # https://stackoverflow.com/questions/46626267/how-to-generate-a-sphere-in-3d-numpy-array
 def sphere(r, val=255, padding=0):
     shape = (r*2 + padding*2, r*2 + padding*2, r*2 + padding*2)
@@ -39,10 +42,10 @@ def sphere(r, val=255, padding=0):
     return (arr <= 1.0) * val
 
 
+# Transform numpy array to image stack
 def arr_to_imgseq(arr, output_folder, img_format="tif", verbose=False):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    # delete folder if it already exists
     else:
         shutil.rmtree(output_folder)
         os.makedirs(output_folder)
@@ -56,7 +59,7 @@ def arr_to_imgseq(arr, output_folder, img_format="tif", verbose=False):
     print("Finished writing %s slices to %s" % (arr.shape[2], output_folder))
 
 
-# Functions returns "y_val" for corresponding "x_val"
+# Get y_val for x_val
 # xs must be sorted, and xs -> ys must be injective
 def get_y_val(x_val, xs, ys):
     if len(xs) != len(ys):
@@ -86,7 +89,7 @@ def get_line(points):
     return ps
 
 
-# Check's distance of x1 to range (x2 - padding, x2 + padding)
+# Checks distance of x1 to range (x2 - padding, x2 + padding)
 def distance_to_range(x1, x2, padding, include_border=False):
     r = 1 if include_border else 0
     ran = (x2 - padding - r, x2 + padding + r)

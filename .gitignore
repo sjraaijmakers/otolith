@@ -1,11 +1,10 @@
 *.pickle
 *.pkl
 __pycache__/
-*.ipynb
 *.vtk
 *.png
 *.pyc
-analysis/
+analysis_old/
 .vscode/
 .ipynb_checkpoints
 .*
