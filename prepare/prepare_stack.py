@@ -203,8 +203,11 @@ def prepare_slices(imgdata, visualize, padding=1):
         r_polydata_mapper.SetInputConnection(rotated_polydata.GetOutputPort())
         r_polydata_mapper.SetScalarVisibility(False)
         r_polydata_actor = vtk.vtkActor()
-        r_polydata_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
+        r_polydata_actor.GetProperty().SetColor(1, 1, 1)
         r_polydata_actor.SetMapper(r_polydata_mapper)
+        # r_polydata_actor.GetProperty().SetSpecular(0.0)
+        r_polydata_actor.GetProperty().SetDiffuse(0.0)
+
 
         obb_poly = vtk.vtkPolyData()
         obb.GenerateRepresentation(0, obb_poly)
@@ -213,8 +216,10 @@ def prepare_slices(imgdata, visualize, padding=1):
         obb_actor = vtk.vtkActor()
         obb_actor.SetMapper(obb_mapper)
         obb_actor.GetProperty().SetColor(1, 1, 1)
+        obb_actor.GetProperty().LightingOff()
+
+
         obb_actor.GetProperty().SetRepresentationToWireframe()
-        obb_actor.GetProperty().SetPointSize(10)
 
         r_obb_poly = vtk.vtkPolyData()
         r_obb.GenerateRepresentation(0, r_obb_poly)
@@ -223,9 +228,11 @@ def prepare_slices(imgdata, visualize, padding=1):
         r_obb_actor = vtk.vtkActor()
         r_obb_actor.SetMapper(r_obb_mapper)
         r_obb_actor.GetProperty().SetColor(1, 1, 1)
+        r_obb_actor.GetProperty().LightingOff()
         r_obb_actor.GetProperty().SetRepresentationToWireframe()
 
         renderer = vtk.vtkRenderer()
+        renderer.SetBackground(82/255,87/255,110/255)
         renderWindow = vtk.vtkRenderWindow()
         renderWindow.AddRenderer(renderer)
         renderWindowInteractor = vtk.vtkRenderWindowInteractor()
@@ -233,6 +240,7 @@ def prepare_slices(imgdata, visualize, padding=1):
 
         # Coordinate system
         axes = vtk.vtkAxesActor()
+        axes.GetXAxisShaftProperty().SetColor(1,1,1)
         widget = vtk.vtkOrientationMarkerWidget()
         widget.SetOutlineColor(0.9300, 0.5700, 0.1300)
         widget.SetOrientationMarker(axes)
@@ -241,8 +249,8 @@ def prepare_slices(imgdata, visualize, padding=1):
         widget.SetEnabled(1)
         widget.InteractiveOn()
 
-        renderer.AddActor(polydata_actor)
-        renderer.AddActor(obb_actor)
+        # renderer.AddActor(polydata_actor)
+        # renderer.AddActor(obb_actor)
         renderer.AddActor(r_polydata_actor)
         renderer.AddActor(r_obb_actor)
 
