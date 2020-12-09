@@ -11,7 +11,6 @@ import cv2
 import glob
 
 from scipy import signal
-from peakdetect import peakdet
 from pickle_functions import save_pickle
 from itertools import chain
 

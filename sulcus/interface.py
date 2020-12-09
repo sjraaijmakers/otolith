@@ -13,8 +13,8 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 from enum import Enum
-
 import seaborn as sns
+
 
 sns.set()
 
@@ -55,6 +55,7 @@ class Interface:
         # Options
         self.option_interpolate_sulcus = tk.BooleanVar(value=True)
         self.option_E = tk.BooleanVar(value=True)
+        self.option_L = tk.BooleanVar(value=True)
 
         # PDA
         self.pda_wl = tk.IntVar(value="21")
@@ -198,6 +199,9 @@ class Interface:
         menu_view.add_checkbutton(label="Show E",
                                   command=self.img_load,
                                   variable=self.option_E)
+        menu_view.add_checkbutton(label="Show E",
+                                  command=self.img_load,
+                                  variable=self.option_L)
 
         # RUN menu
         menu_run = tk.Menu(menubar)
@@ -445,6 +449,7 @@ class Interface:
 
         self.img_oto.set_array(self.otolith.slices[:, :, self.current_z])
         self.img_add_E(self.option_E.get())
+        self.img_add_E(self.option_E.get())
 
         current_peaks = self.get_current_peaks()
 
@@ -479,7 +484,7 @@ class Interface:
             img = self.otolith.slices[:, :, self.current_z]
             edge_xs, edge_ys = general.get_top_edge(img)
 
-            self.img_e.set_data(edge_xs, edge_ys)
+            self.img_e.set_data(edge_xs, edge_ys - 1)
         else:
             self.img_e.set_data([], [])
 
@@ -516,7 +521,7 @@ class Interface:
             x_val = max(edge_xs)
 
         x = int(round(x_val))
-        y = general.get_y_val(x, edge_xs, edge_ys)
+        y = general.get_y_val(x, edge_xs, edge_ys) - 1
 
         change = False
 
