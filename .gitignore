@@ -1,5 +1,4 @@
 *.pickle
-*.pkl
 __pycache__/
 *.vtk
 *.png
