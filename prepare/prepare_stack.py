@@ -1,3 +1,6 @@
+# Data transformations applied to image stack:
+# resampling, alignment, rotation
+
 import sys
 sys.path.insert(1, '../functions')
 
@@ -23,6 +26,7 @@ def is_upside_down(img):
     return top_nzp < bottom_nzp
 
 
+# Derive transformation matrix that aligns xyz to axes of coordinate system
 def get_transformation_matrix(x, y, z):
     u = x / LA.norm(x)
     v = y / LA.norm(y)
@@ -34,6 +38,7 @@ def get_transformation_matrix(x, y, z):
     return uvw_i
 
 
+# Transforms bounds into extent
 def bounds_to_extent(bounds, origin, spacing):
     x1, x2, y1, y2, z1, z2 = bounds
 
@@ -45,30 +50,6 @@ def bounds_to_extent(bounds, origin, spacing):
     k_max = int(np.round((z2 - origin[2]) / spacing[2]))
 
     return i_min, i_max, j_min, j_max, k_min, k_max
-
-
-def get_points_actor(ps):
-    points = vtk.vtkPoints()
-
-    for p in ps:
-        points.InsertNextPoint(p)
-
-    pointsPolydata = vtk.vtkPolyData()
-    pointsPolydata.SetPoints(points)
-
-    vertexFilter = vtk.vtkVertexGlyphFilter()
-    vertexFilter.SetInputData(pointsPolydata)
-    vertexFilter.Update()
-
-    polydata2 = vtk.vtkPolyData()
-    polydata2.ShallowCopy(vertexFilter.GetOutput())
-
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polydata2)
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetPointSize(10)
-    return actor
 
 
 def prepare_slices(imgdata, visualize, padding=1):
@@ -85,13 +66,12 @@ def prepare_slices(imgdata, visualize, padding=1):
         print("Resampled imagedata dimensions (%s): %s" %
               (omega, str(imgdata.GetDimensions())))
 
-    # Create contour (input for OBBtree)
+    # Create contour (as input for OBBtree)
     sran = imgdata.GetScalarRange()
     polydata = vtk.vtkContourFilter()
     polydata.SetInputData(imgdata)
     polydata.SetValue(0, sran[0] + (sran[1] - sran[0]) / 2.0)
     polydata.Update()
-
     print("Created contour of imagedata...")
 
     # Generate OBB
@@ -111,8 +91,7 @@ def prepare_slices(imgdata, visualize, padding=1):
 
     print("Derived OBB from imagedata's contour...")
 
-    # Create t using output of OBB
-
+    # Create transformation matrix t through axes of OBB
     obb_corner = np.array(obb_corner).reshape((3, 1))
     obb_max = (np.array(obb_max)).reshape((3, 1))
     obb_mid = (np.array(obb_mid)).reshape((3, 1))
@@ -136,7 +115,7 @@ def prepare_slices(imgdata, visualize, padding=1):
 
     print("Transformed imagedata by t...")
 
-    # Get bounds of rotated OBB to crop
+    # Get bounds of rotated OBB to crop image stack
     corner = uvw_i.dot(obb_corner)
     ax1 = uvw_i.dot(obb_max + obb_corner)
     ax2 = uvw_i.dot(obb_mid + obb_corner)
@@ -152,9 +131,9 @@ def prepare_slices(imgdata, visualize, padding=1):
                            imgdata.GetSpacing())
     imgdata = vtk_functions.extract_voi(imgdata, bte[0], bte[1], bte[2],
                                         bte[3], bte[4], bte[5], padding)
-
     print("Cropped imagedata...")
 
+    # Visualization component
     if visualize:
         r_sran = imgdata.GetScalarRange()
         rotated_polydata = vtk.vtkContourFilter()
@@ -205,9 +184,6 @@ def prepare_slices(imgdata, visualize, padding=1):
         r_polydata_actor = vtk.vtkActor()
         r_polydata_actor.GetProperty().SetColor(1, 1, 1)
         r_polydata_actor.SetMapper(r_polydata_mapper)
-        # r_polydata_actor.GetProperty().SetSpecular(0.0)
-        r_polydata_actor.GetProperty().SetDiffuse(0.0)
-
 
         obb_poly = vtk.vtkPolyData()
         obb.GenerateRepresentation(0, obb_poly)
@@ -217,7 +193,6 @@ def prepare_slices(imgdata, visualize, padding=1):
         obb_actor.SetMapper(obb_mapper)
         obb_actor.GetProperty().SetColor(1, 1, 1)
         obb_actor.GetProperty().LightingOff()
-
 
         obb_actor.GetProperty().SetRepresentationToWireframe()
 
@@ -232,13 +207,13 @@ def prepare_slices(imgdata, visualize, padding=1):
         r_obb_actor.GetProperty().SetRepresentationToWireframe()
 
         renderer = vtk.vtkRenderer()
-        renderer.SetBackground(82/255,87/255,110/255)
+        renderer.SetBackground(82/255, 87/255, 110/255)  # same bg color as Paraview
         renderWindow = vtk.vtkRenderWindow()
         renderWindow.AddRenderer(renderer)
         renderWindowInteractor = vtk.vtkRenderWindowInteractor()
         renderWindowInteractor.SetRenderWindow(renderWindow)
 
-        # Coordinate system
+        # Visualize coordinate system
         axes = vtk.vtkAxesActor()
         axes.GetXAxisShaftProperty().SetColor(1,1,1)
         widget = vtk.vtkOrientationMarkerWidget()

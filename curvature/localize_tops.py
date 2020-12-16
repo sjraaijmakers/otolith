@@ -1,4 +1,4 @@
-# Localizes tops of protuberance in otolith mesh
+# Localizes tops of protuberance in otolith mesh (.ply)
 
 import sys
 sys.path.insert(1, '../functions')
@@ -21,9 +21,9 @@ class CurvatureSegmentation():
         self.set_normals()
         self.set_mean_curvature()
 
-        # Params for filtering
+        # Parameters (described in thesis)
         self.min_H_value = 0
-        self.min_cluster_count = 50 # N_min
+        self.min_cluster_count = 50  # N_min
         self.min_cr_ring = 100
         self.cluster = True
         self.eps_2 = 9
@@ -39,6 +39,7 @@ class CurvatureSegmentation():
         model.fit_predict(X)
         return model.labels_
 
+    # Filter polydata via diretion of n and value of H
     def threshold_filter_pd(self):
         threshold = vtk.vtkThreshold()
         threshold.SetInputData(self.polydata)
@@ -47,7 +48,7 @@ class CurvatureSegmentation():
         polydata = threshold.GetOutput()
 
         normals = list(map(tuple,
-                        numpy_support.vtk_to_numpy(
+                           numpy_support.vtk_to_numpy(
                                polydata.GetPointData().GetArray("Normals"))))
 
         c = vtk.vtkLongLongArray()
@@ -75,12 +76,9 @@ class CurvatureSegmentation():
         return polydata
 
     def run(self, verbose=True):
-        # Filter pd on H and n
         polydata = self.threshold_filter_pd()
 
-        vtk_functions.write_vtk(polydata, "ewa.vtk")
-
-        # Create distance matrix for polydata
+        # Create distance matrix from polydata
         d = vtk_functions.get_distance_matrix(polydata)
 
         if verbose:

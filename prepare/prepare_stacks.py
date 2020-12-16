@@ -1,3 +1,5 @@
+# Bulk prepare stacks
+
 import os
 import sys
 import prepare_stack
@@ -10,6 +12,7 @@ def has_subdirectories(dir):
 
     return False
 
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -19,7 +22,6 @@ if __name__ == "__main__":
     subs = [x[0] for x in os.walk(input_folder)]
 
     subs = subs[1:]
-
 
     for s in subs:
         if has_subdirectories(s):

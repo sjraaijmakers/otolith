@@ -1,4 +1,4 @@
-# Find H error for sphere polydata
+# Find error of H in sphere polydata
 
 import sys
 sys.path.insert(1, '../functions')

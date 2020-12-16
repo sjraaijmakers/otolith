@@ -30,9 +30,9 @@ sns.set()
 SULCUS_VAL = 255
 
 
-class VM(Enum):
-    count_nzp = 1
-    vtk = 2
+class PART(Enum):
+    otolith = 0
+    sulcus = 2
 
 
 class Interface:
@@ -52,17 +52,17 @@ class Interface:
         self.menubar = None
         self.open_window = None
 
-        # Options
-        self.option_interpolate_sulcus = tk.BooleanVar(value=True)
-        self.option_E = tk.BooleanVar(value=True)
-        self.option_L = tk.BooleanVar(value=True)
-
-        # PDA
+        # Parameters for peak detection algorithm (PDA)
         self.pda_wl = tk.IntVar(value="21")
         self.pda_increment = tk.IntVar(value="5")
         self.pda_k = tk.IntVar(value="2")
         self.pda_run_for_current_slice = tk.BooleanVar(value=False)
         self.show_progress = tk.BooleanVar(value=False)
+
+        # Additional options
+        self.option_interpolate_sulcus = tk.BooleanVar(value=True)
+        self.option_E = tk.BooleanVar(value=True)
+        self.option_L = tk.BooleanVar(value=True)
 
         #
         self.run_loop_var = tk.BooleanVar(value=False)
@@ -116,7 +116,7 @@ class Interface:
         self.add_keybinds()
         self.add_menu()
 
-        # # """ DEBUG """
+        # """ DEBUG """
 
         # oto = Otolith()
         # oto.read_from_folder("/home/steven/scriptie/inputs/testset/otoF83")
@@ -211,7 +211,8 @@ class Interface:
         menu_measure = tk.Menu(menubar)
         menu_measure_vol = tk.Menu(menubar)
         menu_measure.add_cascade(label="Volume...", menu=menu_measure_vol)
-        menu_measure_vol.add_command(label="Volume of otolith", command=lambda: self.window_measure("Volume of otolith", lambda: self.measure_vol_func(0)))
+        menu_measure_vol.add_command(label="Volume of otolith",
+                                     command=lambda: self.window_measure("Volume of otolith", lambda: self.measure_vol_func(0)))
         menu_measure_vol.add_command(label="Volume of (current) sulcus", command=lambda: self.window_measure("Volume of sulcus", lambda: self.measure_vol_func(1)))
         menu_measure_surface = tk.Menu(menubar)
         menu_measure_surface.add_command(label="Surface area of otolith",
@@ -231,7 +232,7 @@ class Interface:
 
         self.menubar = menubar
 
-    """ Setters & Getters """
+    """ Gets/sets """
 
     # Get z of neighbor in direction within max_distance
     def get_neighbor_peaks(self, direction, max_distance=10):
@@ -242,7 +243,7 @@ class Interface:
             return self.otolith.peaks.get(self.current_z + d * direction)
         return None
 
-    # Set global otolith to otolith parameter
+    # Set otolith
     def set_otolith(self, otolith, padding=30):
         self.otolith = otolith
 
@@ -261,37 +262,33 @@ class Interface:
 
         print("Set otolith to \"%s\"" % self.otolith.name)
 
+    # Set peaks through filename
     def set_peaks_from_filename(self, filename):
-        obj = open_pickle(filename)
-        self.set_peaks(obj)
+        self.otolith.open_peaks(filename)
         self.peaks_file_name = filename
         print("Loaded peaks from %s" % filename)
 
-    def set_peaks(self, peaks):
-        self.otolith.set_peaks(peaks)
-        print("Set peaks")
-
-    def peak_add(self, z, peak):
-        if self.otolith.peaks.get(z):
-            self.otolith.peaks[z].append(peak)
-            peaks_xs, peaks_ys = zip(*self.otolith.peaks[z])
+    def peak_add(self, peak):
+        if self.otolith.peaks.get(self.current_z):
+            self.otolith.peaks[self.current_z].append(peak)
+            peaks_xs, peaks_ys = zip(*self.otolith.peaks[self.current_z])
 
             sorted_indices = np.argsort(peaks_xs)
 
             peaks_xs = np.array(peaks_xs)
             peaks_ys = np.array(peaks_ys)
 
-            self.otolith.peaks[z] = list(zip(peaks_xs[sorted_indices],
+            self.otolith.peaks[self.current_z] = list(zip(peaks_xs[sorted_indices],
                                              peaks_ys[sorted_indices]))
         else:
-            self.otolith.peaks[z] = [peak]
+            self.otolith.peaks[self.current_z] = [peak]
 
-    def peak_remove(self, z, peak):
-        index = self.otolith.peaks[z].index(peak)
-        self.otolith.peaks[z].pop(index)
+    def peak_remove(self, peak):
+        index = self.otolith.peaks[self.current_z].index(peak)
+        self.otolith.peaks[self.current_z].pop(index)
 
-        if len(self.otolith.peaks[z]) == 0:
-            self.delete_peaks_slice(z)
+        if len(self.otolith.peaks[self.current_z]) == 0:
+            self.delete_peaks_slice(self.current_z)
 
     """ USER functions """
     # PDA funcs
@@ -442,7 +439,7 @@ class Interface:
 
     """ IMG functions (canvas) """
 
-    # Load image displayed on canvas frame
+    # Load image into canvas frame
     def img_load(self, load_sulcus=True):
         self.slice_nr.config(text="%s / %s" % (self.current_z,
                                                self.otolith.slices.shape[2]-1))
@@ -526,25 +523,24 @@ class Interface:
         change = False
 
         if self.get_current_peaks():
-            # If current clicked value is within radius of existing peaks:
-            # remove peak
+            # If clicked within radius of existing peaks --> remove peak
             not_found = True
 
             for p in self.get_current_peaks():
                 if abs(p[0] - x) < radius:
-                    self.peak_remove(self.current_z, p)
+                    self.peak_remove(p)
                     change = True
                     not_found = False
                     break
 
-            # If peaks were not in range, add peak to dictionary
+            # If peaks not in range, add peak to dictionary
             if not_found:
-                self.peak_add(self.current_z, (x, y))
+                self.peak_add((x, y))
                 change = True
 
-        # If current slice has no points
+        # If current slice has no peaks
         else:
-            self.peak_add(self.current_z, (x, y))
+            self.peak_add((x, y))
             change = True
 
         if change:
@@ -662,7 +658,7 @@ class Interface:
             peaks_detected = self.otolith.detect_peaks_2d(self.current_z)
 
             for p in peaks_detected:
-                self.peak_add(self.current_z, p)
+                self.peak_add(p)
 
             self.img_load(self.current_z)
         else:
@@ -672,10 +668,8 @@ class Interface:
                 if not self.run_loop_var.get():
                     break
 
-                self.current_z = z
-
                 for p in peaks:
-                    self.peak_add(z, p)
+                    self.peak_add(p)
 
                 if self.show_progress.get():
                     self.img_load()
@@ -687,67 +681,42 @@ class Interface:
         if not self.show_progress.get():
             self.img_load()
 
-    def measure_vol_func(self, r, t=VM.count_nzp):
-        volume_generator = None
-        if r == 0:
-            print("Calculating OTOLITH volume with %s" % self.voxel_resolution.get())
-            volume_generator = self.otolith.get_nzp_otolith()
-        elif r == 1:
-            print("Calculating SULCUS volume with %s" % self.voxel_resolution.get())
-            volume_generator = self.otolith.get_nzp_sulcus()
+    def measure_vol_func(self, part):
+        vol_vox = 0
+        part_string = ""
 
-        total_nzp = 0
+        if part == PART.otolith:
+            part_string = "otolith"
+            vol_vox = self.otolith.get_volume_otolith()
+        elif part == PART.sulcus:
+            part_string = "sulucs"
+            vol_vox = self.otolith.get_volume_sulcus()
 
-        if t == VM.vtk:
-            total_nzp = self.otolith.get_volume_otolith_vtk()
-        else:
-            for z, vol in volume_generator:
-                if not self.run_loop_var.get():
-                    return
+        vol = vol_vox * (self.voxel_resolution.get()**3)
 
-                if self.show_progress.get():
-                    self.current_z = z
-
-                    if r == 0:
-                        self.img_load(load_sulcus=False)
-                    else:
-                        self.img_load()
-
-                print("Slice %s: %s non-zero pixels" % (z, vol))
-
-                total_nzp += vol
-                self.root.update()
-
-            self.run_loop_var
-
-        vol = total_nzp * (self.voxel_resolution.get()**3)
-
-        body = "Total non-zero pixels: %s\n" % total_nzp
+        body = "Volume (voxels): %s\n" % vol_vox
         body += "Voxel resolution: %s\n" % self.voxel_resolution.get()
-        body += "Volume: %s μm^3" % vol
+        body += "Volume (metric) of %s: %s μm^3" % (part_string, vol)
 
         self.open_window.destroy()
         self.window_info("Measurements", body, copy=vol)
 
     def measure_surface_func(self, part):
-        s = 0
-
-        if part == 0:
-            s = self.otolith.get_surface_area_otolith()
-        elif part == 1:
-            s = self.otolith.get_surface_area_sulcus()
-
+        sa_vox = 0
         part_string = ""
-        if part == 0:
+
+        if part == PART.otolith:
             part_string = "otolith"
-        elif part == 1:
+            sa_vox = self.otolith.get_surface_area_otolith()
+        elif part == PART.sulcus:
             part_string = "sulucs"
+            sa_vox = self.otolith.get_surface_area_sulcus()
 
-        surface = s * (self.voxel_resolution.get()**2)
+        surface = sa_vox * (self.voxel_resolution.get()**2)
 
-        body = "Surface area (voxels): %s\n" % s
+        body = "Surface area (voxels): %s\n" % sa_vox
         body += "Voxel resolution: %s\n" % self.voxel_resolution.get()
-        body += "surface area of %s: %s μm^2" % \
+        body += "surface area (metric) of %s: %s μm^2" % \
                 (part_string, surface)
 
         self.open_window.destroy()

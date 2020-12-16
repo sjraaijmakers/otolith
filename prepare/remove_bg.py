@@ -1,3 +1,5 @@
+# Remove non-empty bg in otolith image stack
+
 import sys
 sys.path.insert(1, "../sulcus")
 
@@ -10,14 +12,13 @@ import os
 import shutil
 
 
-
 def remove_bg(input, t_val=122, sigma=1):
     img = (input/256).astype(np.uint8)
 
     _,gray = cv2.threshold(img, t_val, 255, cv2.THRESH_BINARY)
     cnts, _ = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-    # Filter out really small contours
+    # Filter out noise contours
     cnts_areas = [cv2.contourArea(c) for c in cnts]
 
     filtered_cnts = []
@@ -25,7 +26,7 @@ def remove_bg(input, t_val=122, sigma=1):
         if cnts_areas[i] > 10:
             filtered_cnts.append(cnts[i])
 
-    # Generate mask
+    # Generate mask from contour
     mask = np.zeros(gray.shape, dtype=np.uint8)
     mask = cv2.drawContours(mask, filtered_cnts, -1, 255, cv2.FILLED)
 
@@ -43,11 +44,6 @@ def remove_bg(input, t_val=122, sigma=1):
     # output = cv2.GaussianBlur(mask, (0,0), sigma).astype(np.uint16)
 
     return output
-
-    # plt.imshow(output)
-    # plt.show()
-
-    # cv2.imwrite("/home/steven/scriptie/code/sulcus/tost/img_0000.tif", output)
 
 
 if __name__ == "__main__":
@@ -81,8 +77,4 @@ if __name__ == "__main__":
         output = remove_bg(input, t_val=t_val)
 
         p = str(f'{z:04}')
-
-        # plt.imshow(output)
-        # plt.show()
-
         cv2.imwrite("%s/img_%s.tif" % (folder, p), output)
