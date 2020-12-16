@@ -4,6 +4,7 @@ __pycache__/
 *.png
 *.pyc
 analysis_old/
+analysis/figures/
 .vscode/
 .ipynb_checkpoints
 .*
