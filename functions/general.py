@@ -6,7 +6,6 @@ import cv2
 import shutil
 import glob
 from bresenham import bresenham
-from numpy import linalg as LA
 
 
 def trunc(f, n):
@@ -43,7 +42,7 @@ def sphere(r, val=255, padding=0):
 
 
 # Transform numpy array to image stack
-def arr_to_imgseq(arr, output_folder, img_format="tif", verbose=False):
+def arr_to_folder(arr, output_folder, img_format="tif", verbose=False):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     else:
@@ -101,24 +100,8 @@ def distance_to_range(x1, x2, padding, include_border=False):
     return 0
 
 
-# Get distance between points
-def get_line_length(points):
-    length = 0
-
-    for i in range(len(points) - 1):
-        length += LA.norm(np.array(points[i]) - np.array(points[i + 1]))
-
-    return length
-
-
-# Loops over all slices and count non-zero pixels
-def count_non_empty_pixels(arr, verbose=False):
-    return cv2.countNonZero(arr)
-
-
-# Convert 2d img to set of points representing the top edge
+# Get top-edge (x, max(y)) within img
 def get_top_edge(img, reverse=False):
-    # Transform edge image to (x, max(y)) coordinates
     edge_xs = []
     edge_ys = []
 
@@ -141,13 +124,13 @@ def get_top_edge(img, reverse=False):
     return np.array(edge_xs), np.array(edge_ys)
 
 
-# Converts all non-zero pixels in 2D array to list of 2D points
+# Converts non-zero pixels in 2D array to list of coordinates
 def arr_to_points(arr):
     xs, ys = np.nonzero(arr.T)
     return list(zip(xs, ys))
 
 
-# Image stack (folder) to 3D numpy array
+# Transform folder (image stack) to 3D numpy array
 def folder_to_arr(folder, file_format="tif", verbose=False):
     files = sorted(glob.glob(folder + "/*." + file_format))
 

@@ -251,10 +251,10 @@ def run(input_folder, output_folder, visualize=False):
     basename = os.path.basename(input_folder)
 
     if omega < 1:
-        general.arr_to_imgseq(np_data, "%s/%s_prepared_%s" % (output_folder,
+        general.arr_to_folder(np_data, "%s/%s_prepared_%s" % (output_folder,
                                                               basename, omega))
     else:
-        general.arr_to_imgseq(np_data, "%s/%s_prepared" % (output_folder,
+        general.arr_to_folder(np_data, "%s/%s_prepared" % (output_folder,
                                                            basename))
 
 

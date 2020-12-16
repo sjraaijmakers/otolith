@@ -1,17 +1,14 @@
-# Wrapper for some vtk functions in python
+# Wrapper for some vtk functions
 
 
 import vtk
 from vtk.util import numpy_support
 import numpy as np
-import os
 import general
-import shutil
-import cv2
 from scipy.sparse import dok_matrix
 
 
-# IMGDATA related
+""" IMGDATA """
 
 
 def gauss_imgdata(imgdata, sigma=3):
@@ -58,15 +55,7 @@ def reslice_imgdata(imgdata, transform):
     return res.GetOutput()
 
 
-def center_imgdata(imgdata):
-    center = vtk.vtkImageChangeInformation()
-    center.SetInputData(imgdata)
-    center.SetCenterImage(1)
-    center.Update()
-    return center.GetOutput()
-
-
-# crop according to extent
+# Crop IMGDATA according to extent
 def extract_voi(imgdata, xi, xf, yi, yf, zi, zf, padding=0):
     voi = vtk.vtkExtractVOI()
     voi.SetVOI(xi - padding, xf + padding, yi - padding, yf + padding,
@@ -77,7 +66,72 @@ def extract_voi(imgdata, xi, xf, yi, yf, zi, zf, padding=0):
     return voi.GetOutput()
 
 
-# PD related
+def imgdata_to_arr(imgdata):
+    dims = imgdata.GetDimensions()
+    vtk_data = imgdata.GetPointData().GetScalars()
+    numpy_data = numpy_support.vtk_to_numpy(vtk_data)
+
+    # why reshape + transpose?
+    numpy_data = numpy_data.reshape(dims[2], dims[1], dims[0])
+    numpy_data = numpy_data.transpose(1, 2, 0)
+    # numpy_data = np.flip(numpy_data, axis=1)
+    return numpy_data
+
+
+def arr_to_imgdata(array):
+    array = array.transpose(2, 0, 1)
+    array = np.flip(array, axis=1)
+
+    data_array = numpy_support.numpy_to_vtk(array.ravel(), deep=True,
+                                            array_type=vtk.VTK_DOUBLE)
+
+    imgdata = vtk.vtkImageData()
+    imgdata.SetDimensions(array.shape[2], array.shape[1], array.shape[0])
+    imgdata.SetSpacing([1, 1, 1])
+    imgdata.SetOrigin([0, 0, 0])
+    imgdata.GetPointData().SetScalars(data_array)
+    return imgdata
+
+
+def imgdata_to_pd(imgdata):
+    sran = imgdata.GetScalarRange()
+    contourFilter = vtk.vtkContourFilter()
+    contourFilter.SetInputData(imgdata)
+    contourFilter.SetValue(0, (sran[1] - sran[0]) / 2)
+    contourFilter.Update()
+    return contourFilter.GetOutput()
+
+
+# Convert folder to imagedata
+def folder_to_imgdata(input_folder, verbose=False):
+    z = general.count_files_in_folder(input_folder, "tif")
+
+    if verbose:
+        print("%s slices for %s" % (z, input_folder))
+
+    p = len(str(z))
+
+    file_prefix = input_folder + "/" + general.get_file_prefix(input_folder, z)
+
+    if verbose:
+        print("file prefix: %s" % file_prefix)
+
+    reader = vtk.vtkTIFFReader()
+
+    reader.SetFilePrefix(file_prefix)
+    reader.SetFilePattern("%s%0" + str(p) + "d.tif")
+    reader.SetFileDimensionality(3)
+    reader.SetOrientationType(2)
+    reader.Update()
+
+    dims = reader.GetOutput().GetDimensions()
+    reader.SetDataExtent((0, dims[0], 0, dims[1], 0, z - 1))
+    reader.Update()
+
+    return reader.GetOutput()
+
+
+""" POLYDATA """
 
 
 def read_ply(filename):
@@ -166,90 +220,9 @@ def get_distance_matrix(polydata):
     return d
 
 
-# CONVERSIONS
-
-
-def imgdata_to_arr(imgdata):
-    dims = imgdata.GetDimensions()
-    vtk_data = imgdata.GetPointData().GetScalars()
-    numpy_data = numpy_support.vtk_to_numpy(vtk_data)
-
-    # why reshape + transpose?
-    numpy_data = numpy_data.reshape(dims[2], dims[1], dims[0])
-    numpy_data = numpy_data.transpose(1, 2, 0)
-    # numpy_data = np.flip(numpy_data, axis=1)
-    return numpy_data
-
-
-def arr_to_imgdata(array):
-    array = array.transpose(2, 0, 1)
-    array = np.flip(array, axis=1)
-
-    data_array = numpy_support.numpy_to_vtk(array.ravel(), deep=True,
-                                            array_type=vtk.VTK_DOUBLE)
-
-    imgdata = vtk.vtkImageData()
-    imgdata.SetDimensions(array.shape[2], array.shape[1], array.shape[0])
-    imgdata.SetSpacing([1, 1, 1])
-    imgdata.SetOrigin([0, 0, 0])
-    imgdata.GetPointData().SetScalars(data_array)
-    return imgdata
-
-
 def arr_to_pd(arr):
     imgdata = arr_to_imgdata(arr)
     return imgdata_to_pd(imgdata)
-
-
-def imgdata_to_pd(imgdata):
-    sran = imgdata.GetScalarRange()
-    contourFilter = vtk.vtkContourFilter()
-    contourFilter.SetInputData(imgdata)
-    contourFilter.SetValue(0, (sran[1] - sran[0]) / 2)
-    contourFilter.Update()
-    return contourFilter.GetOutput()
-
-
-# Convert folder to imagedata
-def folder_to_imgdata(input_folder, verbose=False):
-    z = general.count_files_in_folder(input_folder, "tif")
-
-    if verbose:
-        print("%s slices for %s" % (z, input_folder))
-
-    p = len(str(z))
-
-    file_prefix = input_folder + "/" + general.get_file_prefix(input_folder, z)
-
-    if verbose:
-        print("file prefix: %s" % file_prefix)
-
-    reader = vtk.vtkTIFFReader()
-
-    reader.SetFilePrefix(file_prefix)
-    reader.SetFilePattern("%s%0" + str(p) + "d.tif")
-    reader.SetFileDimensionality(3)
-    reader.SetOrientationType(2)
-    reader.Update()
-
-    dims = reader.GetOutput().GetDimensions()
-    reader.SetDataExtent((0, dims[0], 0, dims[1], 0, z - 1))
-    reader.Update()
-
-    return reader.GetOutput()
-
-
-def folder_to_curv_arr(input_folder, sigma=3):
-    imgdata = folder_to_imgdata(input_folder)
-
-    if sigma > 0:
-        padding = sigma * 2
-        imgdata = pad_imgdata(imgdata, padding)
-        imgdata = gauss_imgdata(imgdata, sigma=sigma)
-
-    polydata = imgdata_to_pd(imgdata)
-
-    return pd_to_curv_arr(polydata)
 
 
 def pd_to_curv_arr(polydata):
@@ -262,6 +235,7 @@ def pd_to_curv_arr(polydata):
 
     polydata = mcFilter.GetOutput()
 
-    curv_arr = numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Mean_Curvature"))
+    curv_arr = numpy_support.vtk_to_numpy(
+        polydata.GetPointData().GetArray("Mean_Curvature"))
 
     return curv_arr

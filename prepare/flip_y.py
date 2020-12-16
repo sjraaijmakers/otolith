@@ -14,5 +14,5 @@ if __name__ == "__main__":
     np_data = general.folder_to_arr(input_folder, file_format="tif", verbose=False)
 
     np_data = np.flip(np_data, axis=1)
-    general.arr_to_imgseq(np_data, output_folder)
+    general.arr_to_folder(np_data, output_folder)
 

@@ -32,4 +32,4 @@ if __name__ == "__main__":
     arr = vtk_functions.imgdata_to_arr(resized_imgdata)
 
     basename = os.path.basename(input_folder)
-    general.arr_to_imgseq(arr, "%s/%s_%s" % (output_folder, basename, omega))
+    general.arr_to_folder(arr, "%s/%s_%s" % (output_folder, basename, omega))

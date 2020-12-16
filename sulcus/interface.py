@@ -388,7 +388,7 @@ class Interface:
             if include_otolith:
                 sulcus = self.otolith.slices + sulcus
 
-            general.arr_to_imgseq(sulcus, "%s/%s_sulcus" % (folder,
+            general.arr_to_folder(sulcus, "%s/%s_sulcus" % (folder,
                                                             self.otolith.name),
                                   verbose=True)
 
