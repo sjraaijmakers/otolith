@@ -4,7 +4,6 @@ sys.path.insert(1, '../functions')
 import general
 import vtk_functions
 from Otolith import Otolith
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

@@ -3,13 +3,8 @@ sys.path.insert(1, '../functions')
 
 import general
 import vtk_functions
-
 import numpy as np
 import matplotlib.pyplot as plt
-
-import cv2
-import glob
-
 from scipy import signal
 from pickle_functions import open_pickle, save_pickle
 from itertools import chain
