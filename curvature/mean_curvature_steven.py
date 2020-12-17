@@ -67,7 +67,6 @@ def define_circle(ps):
 
 
 def rotate_into_xz(p):
-    x = p[0]
     y = p[1]
     z = p[2]
     d = np.sqrt(y**2 + z**2)
@@ -79,6 +78,7 @@ def rotate_into_xz(p):
     ])
 
     return t.dot(p)
+
 
 def remove_sublist_from_list(sub, l):
     return [x for x in l if x not in sub]
@@ -238,7 +238,7 @@ class Polydata():
 
 if __name__ == "__main__":
     reader = vtk.vtkPLYReader()
-    reader.SetFileName("/home/steven/Documents/school/scriptie/INPUTS/meshes/sphere_kutter.ply")
+    reader.SetFileName("/home/steven/Documents/school/scriptie/INPUTS/meshes/sphere.ply")
     reader.Update()
 
     polydata = reader.GetOutput()
