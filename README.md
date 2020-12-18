@@ -1,7 +1,14 @@
 # Morphology analysis on micro-CT scans of saccular otoliths of the European hake
 
-- Functions: contains functionality used throughout this project
-- Prepare: contains functionality to prepare the micro-CT scans (image stacks) for sulcus/curvature analysis
-- Sulcus: contains functionality concerning the examination of the sulcus acusticus
-- Curvature: contains functionality concerning the examination of the otolith curvature
-- Analysis: contains functionality concerning the analysis preformed on the results of the sulcus/curvature analysis (plots, etc.)
+## PREPARE
+Used to prepare otolith image stacks
+(find prepared otolith scans here: )
+
+## SULCUS
+Used to obtain partition of the sulcus acusticus from the prepared image stacks
+
+## CURVATUE
+Contains functionality concerning the examination of the otolith curvature
+
+## ANALYSIS
+Contains functionality concerning the performed analysis on the results of the sulcus and curvature analysis (plots, etc.)
